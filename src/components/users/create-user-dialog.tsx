@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useEffect, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { createUser } from '@/actions/user-actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -45,7 +45,7 @@ export function CreateUserDialog({ isOpen, setIsOpen }: CreateUserDialogProps) {
   const { toast } = useToast();
   const { t } = useLanguage();
   
-  const [state, formAction] = useFormState(createUser, { type: null, message: '', errors: null });
+  const [state, formAction] = useActionState(createUser, { type: null, message: '', errors: null });
 
   useEffect(() => {
     if (state?.type === 'success') {
