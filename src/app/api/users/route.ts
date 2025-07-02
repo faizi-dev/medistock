@@ -67,7 +67,10 @@ export async function POST(req: Request) {
     let message = 'An unexpected error occurred. Please check the server logs for more details.';
     let status = 500;
 
-    if (error.message && (error.message.includes('Error fetching access token') || error.message.includes('Credential implementation provided to initializeApp()'))) {
+    if (error.code === 'auth/argument-error' && error.message.includes('incorrect "aud" (audience) claim')) {
+        message = `Firebase project mismatch. The frontend app is sending an ID token for the wrong project. Please ensure your NEXT_PUBLIC_FIREBASE_PROJECT_ID environment variable matches the Firebase project your App Hosting backend is deployed to. Full error: ${error.message}`;
+        status = 401;
+    } else if (error.message && (error.message.includes('Error fetching access token') || error.message.includes('Credential implementation provided to initializeApp()'))) {
         message = 'Could not authenticate with Firebase. This is a server configuration issue, not an application code bug. The service account for your App Hosting backend is missing a required permission. Please go to the Google Cloud Console for your project, find the service account used by App Hosting, and add the "Service Account Token Creator" IAM role to it.';
     } else {
         switch (error.code) {
