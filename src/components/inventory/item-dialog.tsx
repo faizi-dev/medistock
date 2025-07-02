@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -66,16 +65,37 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
   const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [allItems, setAllItems] = useState<MedicalItem[]>([]);
   const { user: authUser } = useAuth();
 
+  const uniqueItemsByName = useMemo(() => {
+    const seen = new Set<string>();
+    return allItems.filter(item => {
+        const lowerCaseName = item.name.toLowerCase();
+        if (seen.has(lowerCaseName)) {
+            return false;
+        } else {
+            seen.add(lowerCaseName);
+            return true;
+        }
+    });
+  }, [allItems]);
+
   useEffect(() => {
-    async function fetchVehicles() {
+    async function fetchData() {
       const vehiclesSnapshot = await getDocs(collection(db, 'vehicles'));
       const vehiclesList = vehiclesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Vehicle);
       setVehicles(vehiclesList);
+
+      const itemsSnapshot = await getDocs(collection(db, 'items'));
+      const itemsList = itemsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as MedicalItem);
+      setAllItems(itemsList);
     }
-    fetchVehicles();
-  }, []);
+    
+    if (isOpen) {
+      fetchData();
+    }
+  }, [isOpen]);
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(formSchema),
@@ -94,22 +114,24 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
   });
 
   useEffect(() => {
-    if (item) {
-      form.reset({
-        ...item,
-        expirationDate: item.expirationDate?.toDate(),
-      });
-    } else {
-      form.reset({
-        name: '',
-        barcode: '',
-        quantity: 0,
-        lowStockThreshold: 10,
-        vehicleId: '',
-        expirationDate: undefined,
-      });
+    if (isOpen) {
+      if (item) {
+        form.reset({
+          ...item,
+          expirationDate: item.expirationDate?.toDate(),
+        });
+      } else {
+        form.reset({
+          name: '',
+          barcode: '',
+          quantity: 0,
+          lowStockThreshold: 10,
+          vehicleId: '',
+          expirationDate: undefined,
+        });
+      }
     }
-  }, [item, form]);
+  }, [item, form, isOpen]);
 
   const onSubmit = async (values: ItemFormValues) => {
     setIsLoading(true);
@@ -164,8 +186,30 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
                 <FormItem>
                   <FormLabel>{t('inventory.itemDialog.nameLabel')}</FormLabel>
                   <FormControl>
-                    <Input placeholder={t('inventory.itemDialog.namePlaceholder')} {...field} />
+                    <Input 
+                      placeholder={t('inventory.itemDialog.namePlaceholder')} 
+                      {...field}
+                      list="item-names"
+                      autoComplete="off"
+                      onChange={(e) => {
+                        field.onChange(e);
+                        if (!item) { // Only pre-fill when creating a new item
+                            const selectedItem = uniqueItemsByName.find(
+                                (i) => i.name.toLowerCase() === e.target.value.toLowerCase()
+                            );
+                            if (selectedItem) {
+                                form.setValue("barcode", selectedItem.barcode || '', { shouldValidate: true });
+                                form.setValue("lowStockThreshold", selectedItem.lowStockThreshold, { shouldValidate: true });
+                            }
+                        }
+                      }}
+                    />
                   </FormControl>
+                  <datalist id="item-names">
+                    {uniqueItemsByName.map((i) => (
+                        <option key={i.id} value={i.name} />
+                    ))}
+                  </datalist>
                   <FormMessage />
                 </FormItem>
               )}
@@ -176,7 +220,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('inventory.itemDialog.vehicleLabel')}</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={t('inventory.itemDialog.vehiclePlaceholder')} />
