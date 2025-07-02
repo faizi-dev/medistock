@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
-import { createUser } from '@/actions/user-actions';
+import { useEffect, useState } from 'react';
+import { useForm, type SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,8 +15,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -30,31 +39,72 @@ interface CreateUserDialogProps {
   setIsOpen: (open: boolean) => void;
 }
 
-function SubmitButton() {
-    const { pending } = useFormStatus();
-    const { t } = useLanguage();
-    return (
-        <Button type="submit" disabled={pending}>
-            {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {t('users.createUserDialog.createButton')}
-        </Button>
-    );
-}
+const CreateUserSchema = z.object({
+  fullName: z.string().min(1, { message: 'Full name is required.' }),
+  email: z.string().email({ message: 'Invalid email address.' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters long.' }),
+  phone: z.string().optional(),
+  role: z.enum(['Admin', 'Staff']),
+});
+
+type CreateUserFormValues = z.infer<typeof CreateUserSchema>;
+
 
 export function CreateUserDialog({ isOpen, setIsOpen }: CreateUserDialogProps) {
   const { toast } = useToast();
   const { t } = useLanguage();
-  
-  const [state, formAction] = useActionState(createUser, { type: null, message: '', errors: null });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const form = useForm<CreateUserFormValues>({
+    resolver: zodResolver(CreateUserSchema),
+    defaultValues: {
+      fullName: '',
+      email: '',
+      password: '',
+      phone: '',
+      role: 'Staff'
+    },
+  });
 
   useEffect(() => {
-    if (state?.type === 'success') {
-        toast({ title: t('users.toast.userCreated.title'), description: state.message });
-        setIsOpen(false);
-    } else if (state?.type === 'error') {
-        toast({ variant: 'destructive', title: t('users.toast.userCreateError.title'), description: state.message });
+    if (!isOpen) {
+      form.reset();
     }
-  }, [state, toast, setIsOpen, t]);
+  }, [isOpen, form]);
+
+  const onSubmit: SubmitHandler<CreateUserFormValues> = async (data) => {
+    setIsLoading(true);
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error("You must be logged in to create a user.");
+      }
+      const token = await currentUser.getIdToken();
+
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'An error occurred.');
+      }
+
+      toast({ title: t('users.toast.userCreated.title'), description: result.message });
+      setIsOpen(false);
+
+    } catch (error: any) {
+       toast({ variant: 'destructive', title: t('users.toast.userCreateError.title'), description: error.message });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -63,43 +113,90 @@ export function CreateUserDialog({ isOpen, setIsOpen }: CreateUserDialogProps) {
           <DialogTitle>{t('users.createUserDialog.title')}</DialogTitle>
           <DialogDescription>{t('users.createUserDialog.description')}</DialogDescription>
         </DialogHeader>
-        <form action={formAction} className="space-y-4 py-4" key={isOpen ? 'open' : 'closed'}>
-            <div className="space-y-2">
-                <Label htmlFor="fullName">{t('users.createUserDialog.fullNameLabel')}</Label>
-                <Input id="fullName" name="fullName" type="text" placeholder={t('users.createUserDialog.fullNamePlaceholder')} required />
-                {state?.errors?.fullName && <p className="text-sm font-medium text-destructive">{state.errors.fullName[0]}</p>}
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="email">{t('users.createUserDialog.emailLabel')}</Label>
-                <Input id="email" name="email" type="email" placeholder={t('users.createUserDialog.emailPlaceholder')} required />
-                {state?.errors?.email && <p className="text-sm font-medium text-destructive">{state.errors.email[0]}</p>}
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="password">{t('users.createUserDialog.passwordLabel')}</Label>
-                <Input id="password" name="password" type="password" required />
-                {state?.errors?.password && <p className="text-sm font-medium text-destructive">{state.errors.password[0]}</p>}
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="phone">{t('users.userDialog.phoneLabel')}</Label>
-                <Input id="phone" name="phone" placeholder={t('users.userDialog.phonePlaceholder')} />
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="role">{t('users.userDialog.roleLabel')}</Label>
-                <Select name="role" defaultValue="Staff">
-                    <SelectTrigger>
-                        <SelectValue placeholder={t('users.userDialog.rolePlaceholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Staff">{t('users.userDialog.roleStaff')}</SelectItem>
-                      <SelectItem value="Admin">{t('users.userDialog.roleAdmin')}</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>{t('users.createUserDialog.cancel')}</Button>
-              <SubmitButton />
-            </DialogFooter>
-        </form>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                <FormField
+                    control={form.control}
+                    name="fullName"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t('users.createUserDialog.fullNameLabel')}</FormLabel>
+                            <FormControl>
+                                <Input placeholder={t('users.createUserDialog.fullNamePlaceholder')} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t('users.createUserDialog.emailLabel')}</FormLabel>
+                            <FormControl>
+                                <Input type="email" placeholder={t('users.createUserDialog.emailPlaceholder')} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t('users.createUserDialog.passwordLabel')}</FormLabel>
+                            <FormControl>
+                                <Input type="password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>{t('users.userDialog.phoneLabel')}</FormLabel>
+                        <FormControl>
+                            <Input placeholder={t('users.userDialog.phonePlaceholder')} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="role"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{t('users.userDialog.roleLabel')}</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={t('users.userDialog.rolePlaceholder')} />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                <SelectItem value="Staff">{t('users.userDialog.roleStaff')}</SelectItem>
+                                <SelectItem value="Admin">{t('users.userDialog.roleAdmin')}</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>{t('users.createUserDialog.cancel')}</Button>
+                <Button type="submit" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {t('users.createUserDialog.createButton')}
+                </Button>
+                </DialogFooter>
+            </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
