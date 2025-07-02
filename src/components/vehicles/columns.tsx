@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { Vehicle } from '@/types';
 import type { TranslationKey } from '@/lib/translations';
+import { format } from 'date-fns';
 
 export const getColumns = (
   onEdit: (vehicle: Vehicle) => void,
@@ -36,11 +37,36 @@ export const getColumns = (
     },
     cell: ({ row }) => {
       return (
-        <Link href={`/vehicles/${row.original.id}`} className="font-medium text-primary hover:underline">
-          {row.getValue('name')}
-        </Link>
+        <div className="pl-4">
+            <Link href={`/vehicles/${row.original.id}`} className="font-medium text-primary hover:underline">
+            {row.getValue('name')}
+            </Link>
+        </div>
       );
     }
+  },
+  {
+    accessorKey: 'createdBy.name',
+    header: t('vehicles.columns.addedBy'),
+    cell: ({ row }) => row.original.createdBy?.name || 'N/A',
+  },
+  {
+    accessorKey: 'createdAt',
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          {t('vehicles.columns.addedAt')}
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+    cell: ({ row }) => {
+      const date = row.original.createdAt?.toDate();
+      return date ? format(date, 'MMM d, yyyy') : 'N/A';
+    },
   },
   {
     id: 'actions',

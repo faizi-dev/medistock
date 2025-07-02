@@ -41,6 +41,7 @@ import { format } from 'date-fns';
 import type { MedicalItem, Vehicle } from '@/types';
 import { Timestamp } from 'firebase/firestore';
 import { useLanguage } from '@/context/language-context';
+import { useAuth } from '@/hooks/use-auth';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -65,6 +66,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
   const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const { user: authUser } = useAuth();
 
   useEffect(() => {
     async function fetchVehicles() {
@@ -112,16 +114,25 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
   const onSubmit = async (values: ItemFormValues) => {
     setIsLoading(true);
     try {
-      const itemData: Omit<MedicalItem, 'id'> = {
+      if (!authUser) {
+        toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to perform this action.' });
+        setIsLoading(false);
+        return;
+      }
+
+      const itemData: any = {
         ...values,
-        expirationDate: values.expirationDate ? Timestamp.fromDate(values.expirationDate) : Timestamp.now(),
-        // Add other required fields if any
+        expirationDate: values.expirationDate ? Timestamp.fromDate(values.expirationDate) : null,
       };
       
       if (item) {
+        itemData.updatedAt = serverTimestamp();
+        itemData.updatedBy = { uid: authUser.uid, name: authUser.fullName || authUser.email };
         await setDoc(doc(db, 'items', item.id), itemData, { merge: true });
         toast({ title: 'Item Updated', description: `${values.name} has been updated.` });
       } else {
+        itemData.createdAt = serverTimestamp();
+        itemData.createdBy = { uid: authUser.uid, name: authUser.fullName || authUser.email };
         await addDoc(collection(db, 'items'), itemData);
         toast({ title: 'Item Added', description: `${values.name} has been added to inventory.` });
       }

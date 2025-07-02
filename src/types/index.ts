@@ -5,14 +5,22 @@ export interface MedicalItem {
   name: string;
   barcode: string;
   quantity: number;
-  expirationDate: Timestamp;
+  expirationDate: Timestamp | null;
   vehicleId: string;
   lowStockThreshold: number;
+  createdAt: Timestamp;
+  createdBy: { uid: string; name: string; };
+  updatedAt?: Timestamp;
+  updatedBy?: { uid: string; name: string; };
 }
 
 export interface Vehicle {
   id: string;
   name: string;
+  createdAt: Timestamp;
+  createdBy: { uid: string; name: string; };
+  updatedAt?: Timestamp;
+  updatedBy?: { uid: string; name: string; };
 }
 
 export interface UserProfile {

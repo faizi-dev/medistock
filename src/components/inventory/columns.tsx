@@ -110,6 +110,29 @@ export const getColumns = (
     },
   },
   {
+    accessorKey: 'createdBy',
+    header: t('inventory.columns.addedBy'),
+    cell: ({ row }) => row.original.createdBy?.name || 'N/A',
+  },
+  {
+    accessorKey: 'createdAt',
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          {t('inventory.columns.addedAt')}
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+    cell: ({ row }) => {
+      const date = row.original.createdAt?.toDate();
+      return date ? format(date, 'MMM d, yyyy') : 'N/A';
+    },
+  },
+  {
     id: 'actions',
     cell: ({ row }) => {
       const item = row.original;

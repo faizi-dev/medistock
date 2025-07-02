@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import type { Vehicle } from '@/types';
 import { useLanguage } from '@/context/language-context';
+import { useAuth } from '@/hooks/use-auth';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Vehicle name is required'),
@@ -46,6 +48,7 @@ export function VehicleDialog({ isOpen, setIsOpen, vehicle, onSuccess }: Vehicle
   const { toast } = useToast();
   const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
+  const { user: authUser } = useAuth();
 
   const form = useForm<VehicleFormValues>({
     resolver: zodResolver(formSchema),
@@ -53,24 +56,39 @@ export function VehicleDialog({ isOpen, setIsOpen, vehicle, onSuccess }: Vehicle
   });
 
   useEffect(() => {
-    if (vehicle) {
-      form.reset({ name: vehicle.name });
-    } else {
-      form.reset({ name: '' });
+    if (!isOpen) {
+      form.reset(vehicle ? { name: vehicle.name } : { name: '' });
     }
-  }, [vehicle, form]);
+  }, [isOpen, vehicle, form]);
+
 
   const onSubmit = async (values: VehicleFormValues) => {
     setIsLoading(true);
     try {
+      if (!authUser) {
+        toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in.' });
+        setIsLoading(false);
+        return;
+      }
+      
       if (vehicle) {
-        await setDoc(doc(db, 'vehicles', vehicle.id), values, { merge: true });
+        const vehicleData = {
+          ...values,
+          updatedAt: serverTimestamp(),
+          updatedBy: { uid: authUser.uid, name: authUser.fullName || authUser.email }
+        }
+        await setDoc(doc(db, 'vehicles', vehicle.id), vehicleData, { merge: true });
         toast({ 
           title: t('vehicles.toast.updated.title'), 
           description: t('vehicles.toast.updated.description').replace('{vehicleName}', values.name)
         });
       } else {
-        await addDoc(collection(db, 'vehicles'), values);
+        const vehicleData = {
+          ...values,
+          createdAt: serverTimestamp(),
+          createdBy: { uid: authUser.uid, name: authUser.fullName || authUser.email }
+        }
+        await addDoc(collection(db, 'vehicles'), vehicleData);
         toast({ 
           title: t('vehicles.toast.added.title'), 
           description: t('vehicles.toast.added.description').replace('{vehicleName}', values.name)
