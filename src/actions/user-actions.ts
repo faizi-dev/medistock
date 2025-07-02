@@ -67,24 +67,28 @@ export async function createUser(prevState: any, formData: FormData) {
 
     let message = 'An unexpected error occurred. Please check the server logs for more details.';
 
-    switch (error.code) {
-        case 'auth/email-already-exists':
-            message = 'This email is already in use by another account.';
-            break;
-        case 'auth/invalid-password':
-            message = 'The password must be a string with at least six characters.';
-            break;
-        case 'auth/invalid-email':
-            message = 'The email address provided is not valid.';
-            break;
-        case 'auth/internal-error':
-            message = 'An internal Firebase error occurred. This could be due to a service account permissions issue or a disabled API. Please check your project configuration and server logs.';
-            break;
-        default:
-            if (error.message) {
-              message = error.message;
-            }
-            break;
+    if (error.message && error.message.includes('Error fetching access token')) {
+        message = 'Could not authenticate with Firebase. This is likely a server configuration issue. Please ensure the service account for your App Hosting backend has the "Service Account Token Creator" IAM role in your Google Cloud project.';
+    } else {
+        switch (error.code) {
+            case 'auth/email-already-exists':
+                message = 'This email is already in use by another account.';
+                break;
+            case 'auth/invalid-password':
+                message = 'The password must be a string with at least six characters.';
+                break;
+            case 'auth/invalid-email':
+                message = 'The email address provided is not valid.';
+                break;
+            case 'auth/internal-error':
+                message = 'An internal Firebase error occurred. This could be due to a service account permissions issue or a disabled API. Please check your project configuration and server logs.';
+                break;
+            default:
+                if (error.message) {
+                  message = error.message;
+                }
+                break;
+        }
     }
     
     return { type: 'error', message };
