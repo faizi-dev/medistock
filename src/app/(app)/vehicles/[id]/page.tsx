@@ -23,13 +23,15 @@ import {
 } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Truck } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLanguage } from '@/context/language-context';
 
 export default function VehicleInventoryPage() {
   const params = useParams();
   const router = useRouter();
   const vehicleId = params.id as string;
+  const { t } = useLanguage();
 
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [items, setItems] = useState<MedicalItem[]>([]);
@@ -61,7 +63,11 @@ export default function VehicleInventoryPage() {
     };
   }, [vehicleId, router]);
 
-  const columns = useMemo(() => getColumns([], () => {}, () => {}), []);
+  const columns = useMemo(() => {
+    // We get all columns and then filter out the 'vehicle' column as it's redundant on this page.
+    const allColumns = getColumns([], () => {}, () => {}, t);
+    return allColumns.filter(column => column.accessorKey !== 'vehicleId');
+  }, [t]);
 
   const table = useReactTable({
     data: items,
@@ -78,7 +84,7 @@ export default function VehicleInventoryPage() {
         <Button asChild variant="outline">
             <Link href="/vehicles">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to all vehicles
+                {t('vehicles.backToAll')}
             </Link>
         </Button>
       </PageHeader>
@@ -124,7 +130,7 @@ export default function VehicleInventoryPage() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center">
-                    No inventory found for this vehicle.
+                    {t('inventory.noItems')}
                   </TableCell>
                 </TableRow>
               )}
