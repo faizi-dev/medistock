@@ -1,9 +1,8 @@
 
 'use server';
 
-import { initializeApp, getApps, App } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { Timestamp } from 'firebase-admin/firestore';
 import * as z from 'zod';
 
 const CreateUserSchema = z.object({
@@ -14,20 +13,8 @@ const CreateUserSchema = z.object({
   role: z.enum(['Admin', 'Staff']),
 });
 
-// Initialize Firebase Admin SDK if not already initialized
-function initializeFirebaseAdmin(): App {
-    if (getApps().length) {
-        return getApps()[0];
-    }
-    // In a Google Cloud environment (like Firebase App Hosting),
-    // initializeApp() will automatically use Application Default Credentials.
-    return initializeApp();
-}
-
 export async function createUser(prevState: any, formData: FormData) {
   try {
-    initializeFirebaseAdmin();
-
     const validatedFields = CreateUserSchema.safeParse({
       fullName: formData.get('fullName'),
       email: formData.get('email'),
@@ -46,13 +33,13 @@ export async function createUser(prevState: any, formData: FormData) {
     
     const { fullName, email, password, phone, role } = validatedFields.data;
 
-    const userRecord = await getAuth().createUser({
+    const userRecord = await adminAuth.createUser({
       email,
       password,
       displayName: fullName,
     });
     
-    await getFirestore().collection('users').doc(userRecord.uid).set({
+    await adminDb.collection('users').doc(userRecord.uid).set({
       uid: userRecord.uid,
       email: userRecord.email,
       fullName: fullName,
@@ -67,7 +54,7 @@ export async function createUser(prevState: any, formData: FormData) {
 
     let message = 'An unexpected error occurred. Please check the server logs for more details.';
 
-    if (error.message && error.message.includes('Error fetching access token')) {
+    if (error.message && (error.message.includes('Error fetching access token') || error.message.includes('Credential implementation provided to initializeApp()'))) {
         message = 'Could not authenticate with Firebase. This is likely a server configuration issue. Please ensure the service account for your App Hosting backend has the "Service Account Token Creator" IAM role in your Google Cloud project.';
     } else {
         switch (error.code) {
