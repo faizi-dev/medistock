@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,7 +14,6 @@ import { Button } from '@/components/ui/button';
 import {
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -62,7 +60,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
-      // The redirection is now handled by the useEffect hook.
+      // The redirection is now handled by the useAuth hook observer.
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -129,17 +127,6 @@ export default function LoginPage() {
           </form>
         </Form>
       </CardContent>
-      <CardFooter className="text-sm">
-        <p className="text-muted-foreground">
-          {t('login.noAccount')}{' '}
-          <Link
-            href="/signup"
-            className="font-medium text-primary hover:underline"
-          >
-            {t('login.signUpLink')}
-          </Link>
-        </p>
-      </CardFooter>
     </>
   );
 }

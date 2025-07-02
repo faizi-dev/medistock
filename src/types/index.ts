@@ -19,6 +19,7 @@ export interface UserProfile {
   uid: string;
   email: string | null;
   role: 'Admin' | 'Staff';
+  phone?: string;
 }
 
 export interface ReorderingSuggestion {

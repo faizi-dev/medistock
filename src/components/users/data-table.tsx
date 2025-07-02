@@ -22,7 +22,7 @@ import type { UserProfile } from '@/types';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
-import { UserRoleDialog } from './role-dialog';
+import { UserDialog } from './user-dialog';
 import { useLanguage } from '@/context/language-context';
 
 export function UsersDataTable() {
@@ -32,7 +32,7 @@ export function UsersDataTable() {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
   // Dialog states
-  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+  const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
@@ -50,9 +50,9 @@ export function UsersDataTable() {
     return () => unsubscribe();
   }, []);
 
-  const handleEditRole = (user: UserProfile) => {
+  const handleEditUser = (user: UserProfile) => {
     setSelectedUser(user);
-    setIsRoleDialogOpen(true);
+    setIsUserDialogOpen(true);
   };
 
   const handleDelete = (user: UserProfile) => {
@@ -83,14 +83,14 @@ export function UsersDataTable() {
     }
   };
 
-  const handleRoleChangeSuccess = () => {
+  const handleUserUpdateSuccess = () => {
     toast({ 
-      title: t('users.toast.roleUpdated.title'),
-      description: t('users.toast.roleUpdated.description')
+      title: t('users.toast.userUpdated.title'),
+      description: t('users.toast.userUpdated.description')
     });
   }
 
-  const columns = useMemo(() => getColumns(handleEditRole, handleDelete, t), [t]);
+  const columns = useMemo(() => getColumns(handleEditUser, handleDelete, t), [t]);
 
   const table = useReactTable({
     data: users,
@@ -184,11 +184,11 @@ export function UsersDataTable() {
           {t('users.next')}
         </Button>
       </div>
-      <UserRoleDialog
-        isOpen={isRoleDialogOpen}
-        setIsOpen={setIsRoleDialogOpen}
+      <UserDialog
+        isOpen={isUserDialogOpen}
+        setIsOpen={setIsUserDialogOpen}
         user={selectedUser}
-        onSuccess={handleRoleChangeSuccess}
+        onSuccess={handleUserUpdateSuccess}
       />
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
