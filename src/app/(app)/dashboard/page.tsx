@@ -40,9 +40,9 @@ export default function DashboardPage() {
   const lowStockItems = items.filter(item => item.quantity <= item.lowStockThreshold).length;
   const expiringSoonItems = items.filter(item => {
     if (!item.expirationDate) return false;
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-    return item.expirationDate.toDate() < thirtyDaysFromNow;
+    const sixtyDaysFromNow = new Date();
+    sixtyDaysFromNow.setDate(sixtyDaysFromNow.getDate() + 60);
+    return item.expirationDate.toDate() < sixtyDaysFromNow;
   }).length;
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
