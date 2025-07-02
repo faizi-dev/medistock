@@ -25,9 +25,9 @@ const getStatus = (item: MedicalItem, t: (key: TranslationKey) => string): { key
     return { key: 'lowStock', text: t('inventory.status.lowStock'), variant: 'destructive' };
   }
   if (item.expirationDate) {
-    const sixtyDaysFromNow = new Date();
-    sixtyDaysFromNow.setDate(sixtyDaysFromNow.getDate() + 60);
-    if (item.expirationDate.toDate() < sixtyDaysFromNow) {
+    const fortyTwoDaysFromNow = new Date();
+    fortyTwoDaysFromNow.setDate(fortyTwoDaysFromNow.getDate() + 42);
+    if (item.expirationDate.toDate() < fortyTwoDaysFromNow) {
       return { key: 'expiringSoon', text: t('inventory.status.expiringSoon'), variant: 'outline' };
     }
   }

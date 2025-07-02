@@ -6,7 +6,7 @@ import nodemailer from 'nodemailer';
 import type { MedicalItem, UserProfile } from '@/types';
 
 const DEFAULT_TEMPLATE = `<h1>MediStock Expiration Alert</h1>
-<p>The following items in your inventory are expiring within the next 60 days:</p>
+<p>The following items in your inventory are expiring within the next 6 weeks:</p>
 <ul>
   {{{itemsListHtml}}}
 </ul>
@@ -40,14 +40,14 @@ export async function GET(req: Request) {
         return NextResponse.json({ message: 'No admin users with emails found to notify.' });
     }
     
-    // 2. Find items expiring in the next 60 days
+    // 2. Find items expiring in the next 42 days (6 weeks)
     const now = new Date();
-    const sixtyDaysFromNow = new Date();
-    sixtyDaysFromNow.setDate(now.getDate() + 60);
+    const fortyTwoDaysFromNow = new Date();
+    fortyTwoDaysFromNow.setDate(now.getDate() + 42);
 
     const itemsSnapshot = await adminDb.collection('items')
       .where('expirationDate', '>', Timestamp.fromDate(now))
-      .where('expirationDate', '<=', Timestamp.fromDate(sixtyDaysFromNow))
+      .where('expirationDate', '<=', Timestamp.fromDate(fortyTwoDaysFromNow))
       .get();
     
     if (itemsSnapshot.empty) {
