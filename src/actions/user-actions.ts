@@ -1,3 +1,4 @@
+
 'use server';
 
 import { initializeApp, getApps, App } from 'firebase-admin/app';
@@ -43,15 +44,10 @@ export async function createUser(prevState: any, formData: FormData) {
     
     const { email, password, phone, role } = validatedFields.data;
 
-    const userCreationRequest: {
-      email: string;
-      password: string;
-    } = {
+    const userRecord = await getAuth().createUser({
       email,
       password,
-    };
-
-    const userRecord = await getAuth().createUser(userCreationRequest);
+    });
     
     await getFirestore().collection('users').doc(userRecord.uid).set({
       uid: userRecord.uid,
@@ -62,13 +58,30 @@ export async function createUser(prevState: any, formData: FormData) {
 
     return { type: 'success', message: `User ${email} created successfully.` };
   } catch (error: any) {
-    let message = 'An unexpected error occurred. Please check the server logs for more details.';
-    if (error.code === 'auth/email-already-exists') {
-        message = 'This email is already in use by another account.';
-    } else if (error.code === 'auth/invalid-password') {
-        message = 'The password must be a string with at least six characters.';
-    }
     console.error('Error creating user:', error);
+
+    let message = 'An unexpected error occurred. Please check the server logs for more details.';
+
+    switch (error.code) {
+        case 'auth/email-already-exists':
+            message = 'This email is already in use by another account.';
+            break;
+        case 'auth/invalid-password':
+            message = 'The password must be a string with at least six characters.';
+            break;
+        case 'auth/invalid-email':
+            message = 'The email address provided is not valid.';
+            break;
+        case 'auth/internal-error':
+            message = 'An internal Firebase error occurred. This could be due to a service account permissions issue or a disabled API. Please check your project configuration and server logs.';
+            break;
+        default:
+            if (error.message) {
+              message = error.message;
+            }
+            break;
+    }
+    
     return { type: 'error', message };
   }
 }
