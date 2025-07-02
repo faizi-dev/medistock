@@ -46,15 +46,10 @@ export async function createUser(prevState: any, formData: FormData) {
     const userCreationRequest: {
       email: string;
       password: string;
-      phoneNumber?: string;
     } = {
       email,
       password,
     };
-  
-    if (phone) {
-      userCreationRequest.phoneNumber = phone;
-    }
 
     const userRecord = await getAuth().createUser(userCreationRequest);
     
@@ -72,10 +67,6 @@ export async function createUser(prevState: any, formData: FormData) {
         message = 'This email is already in use by another account.';
     } else if (error.code === 'auth/invalid-password') {
         message = 'The password must be a string with at least six characters.';
-    } else if (error.code === 'auth/invalid-phone-number') {
-        message = 'The phone number provided is not valid. It must be in E.164 format (e.g., +12223334444).';
-    } else if (error.code === 'auth/phone-number-already-exists') {
-        message = 'The phone number is already in use by another account.';
     }
     console.error('Error creating user:', error);
     return { type: 'error', message };
