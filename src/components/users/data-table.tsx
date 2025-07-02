@@ -23,6 +23,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 import { UserRoleDialog } from './role-dialog';
+import { useLanguage } from '@/context/language-context';
 
 export function UsersDataTable() {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -37,6 +38,7 @@ export function UsersDataTable() {
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
   
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   useEffect(() => {
     const q = query(collection(db, 'users'));
@@ -64,9 +66,16 @@ export function UsersDataTable() {
         // This only deletes the Firestore record.
         // Deleting from Firebase Auth requires a backend function.
         await deleteDoc(doc(db, 'users', userToDelete.uid));
-        toast({ title: "User Record Deleted", description: `User record for ${userToDelete.email} has been removed.` });
+        toast({ 
+          title: t('users.toast.deleted.title'),
+          description: t('users.toast.deleted.description').replace('{email}', userToDelete.email || '') 
+        });
       } catch (error) {
-        toast({ variant: 'destructive', title: "Error", description: "Could not delete user record. Please try again." });
+        toast({ 
+          variant: 'destructive', 
+          title: t('users.toast.deleteError.title'),
+          description: t('users.toast.deleteError.description') 
+        });
       } finally {
         setIsAlertOpen(false);
         setUserToDelete(null);
@@ -75,10 +84,13 @@ export function UsersDataTable() {
   };
 
   const handleRoleChangeSuccess = () => {
-    toast({ title: 'Role Updated', description: 'User role has been successfully changed.'});
+    toast({ 
+      title: t('users.toast.roleUpdated.title'),
+      description: t('users.toast.roleUpdated.description')
+    });
   }
 
-  const columns = useMemo(() => getColumns(handleEditRole, handleDelete), []);
+  const columns = useMemo(() => getColumns(handleEditRole, handleDelete, t), [t]);
 
   const table = useReactTable({
     data: users,
@@ -99,7 +111,7 @@ export function UsersDataTable() {
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
       <div className="flex items-center justify-between mb-4">
         <Input
-          placeholder="Filter by email..."
+          placeholder={t('users.filterPlaceholder')}
           value={(table.getColumn('email')?.getFilterValue() as string) ?? ''}
           onChange={(event) =>
             table.getColumn('email')?.setFilterValue(event.target.value)
@@ -147,7 +159,7 @@ export function UsersDataTable() {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No users found.
+                  {t('users.noUsers')}
                 </TableCell>
               </TableRow>
             )}
@@ -161,7 +173,7 @@ export function UsersDataTable() {
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
         >
-          Previous
+          {t('users.previous')}
         </Button>
         <Button
           variant="outline"
@@ -169,7 +181,7 @@ export function UsersDataTable() {
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
         >
-          Next
+          {t('users.next')}
         </Button>
       </div>
       <UserRoleDialog
@@ -181,15 +193,15 @@ export function UsersDataTable() {
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>{t('users.deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the user record for "{userToDelete?.email}" from the database. Authentication credentials will remain.
+              {t('users.deleteDialog.description').replace('{email}', userToDelete?.email || '')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('users.deleteDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
-              Delete Record
+              {t('users.deleteDialog.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

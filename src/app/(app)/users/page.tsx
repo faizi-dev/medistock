@@ -7,10 +7,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { useLanguage } from "@/context/language-context";
 
 export default function UsersPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!loading && user?.role !== 'Admin') {
@@ -29,8 +31,8 @@ export default function UsersPage() {
   return (
     <>
       <PageHeader
-        title="User Management"
-        description="Administer user roles and access for all staff members."
+        title={t('users.title')}
+        description={t('users.description')}
       />
       <UsersDataTable />
     </>

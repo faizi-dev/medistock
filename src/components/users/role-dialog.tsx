@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import type { UserProfile } from '@/types';
+import { useLanguage } from '@/context/language-context';
 
 const formSchema = z.object({
   role: z.enum(['Admin', 'Staff']),
@@ -50,6 +51,7 @@ interface UserRoleDialogProps {
 
 export function UserRoleDialog({ isOpen, setIsOpen, user, onSuccess }: UserRoleDialogProps) {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<RoleFormValues>({
@@ -75,7 +77,11 @@ export function UserRoleDialog({ isOpen, setIsOpen, user, onSuccess }: UserRoleD
       setIsOpen(false);
     } catch (error) {
       console.error("Error updating role: ", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not update user role. Please try again.' });
+      toast({ 
+        variant: 'destructive', 
+        title: t('users.toast.roleUpdateError.title'), 
+        description: t('users.toast.roleUpdateError.description')
+      });
     } finally {
       setIsLoading(false);
     }
@@ -85,9 +91,9 @@ export function UserRoleDialog({ isOpen, setIsOpen, user, onSuccess }: UserRoleD
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Change User Role</DialogTitle>
+          <DialogTitle>{t('users.roleDialog.title')}</DialogTitle>
           <DialogDescription>
-            Update the role for {user?.email}.
+            {t('users.roleDialog.description').replace('{email}', user?.email || '')}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -97,16 +103,16 @@ export function UserRoleDialog({ isOpen, setIsOpen, user, onSuccess }: UserRoleD
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Role</FormLabel>
+                  <FormLabel>{t('users.roleDialog.roleLabel')}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a role" />
+                        <SelectValue placeholder={t('users.roleDialog.rolePlaceholder')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Staff">Staff</SelectItem>
-                      <SelectItem value="Admin">Admin</SelectItem>
+                      <SelectItem value="Staff">{t('users.roleDialog.roleStaff')}</SelectItem>
+                      <SelectItem value="Admin">{t('users.roleDialog.roleAdmin')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -114,10 +120,10 @@ export function UserRoleDialog({ isOpen, setIsOpen, user, onSuccess }: UserRoleD
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>Cancel</Button>
+              <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>{t('users.roleDialog.cancel')}</Button>
               <Button type="submit" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
+                {t('users.roleDialog.save')}
               </Button>
             </DialogFooter>
           </form>

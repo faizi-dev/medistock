@@ -15,11 +15,13 @@ import {
 import { Badge } from '@/components/ui/badge';
 import type { UserProfile } from '@/types';
 import { useAuth } from '@/hooks/use-auth';
+import type { TranslationKey } from '@/lib/translations';
 
-const ActionsCell = ({ row, onEditRole, onDelete }: {
+const ActionsCell = ({ row, onEditRole, onDelete, t }: {
   row: any;
   onEditRole: (user: UserProfile) => void;
   onDelete: (user: UserProfile) => void;
+  t: (key: TranslationKey) => string;
 }) => {
   const { user: currentUser } = useAuth();
   const user = row.original as UserProfile;
@@ -28,7 +30,7 @@ const ActionsCell = ({ row, onEditRole, onDelete }: {
   if (isCurrentUser) {
     return (
       <div className="text-right">
-        <span className="px-4 text-sm text-muted-foreground">(You)</span>
+        <span className="px-4 text-sm text-muted-foreground">{t('users.actions.currentUserLabel')}</span>
       </div>
     );
   }
@@ -43,16 +45,16 @@ const ActionsCell = ({ row, onEditRole, onDelete }: {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DropdownMenuLabel>{t('users.columns.actions')}</DropdownMenuLabel>
           <DropdownMenuItem onClick={() => onEditRole(user)}>
-            Change Role
+            {t('users.actions.changeRole')}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"
             onClick={() => onDelete(user)}
           >
-            Delete User Record
+            {t('users.actions.delete')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -62,7 +64,8 @@ const ActionsCell = ({ row, onEditRole, onDelete }: {
 
 export const getColumns = (
   onEditRole: (user: UserProfile) => void,
-  onDelete: (user: UserProfile) => void
+  onDelete: (user: UserProfile) => void,
+  t: (key: TranslationKey) => string
 ): ColumnDef<UserProfile>[] => [
   {
     accessorKey: 'email',
@@ -71,7 +74,7 @@ export const getColumns = (
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
       >
-        Email
+        {t('users.columns.email')}
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
@@ -79,10 +82,11 @@ export const getColumns = (
   },
   {
     accessorKey: 'role',
-    header: 'Role',
+    header: t('users.columns.role'),
     cell: ({ row }) => {
       const role = row.getValue('role') as string;
-      return <Badge variant={role === 'Admin' ? 'default' : 'secondary'}>{role}</Badge>;
+      const roleText = role === 'Admin' ? t('users.roleDialog.roleAdmin') : t('users.roleDialog.roleStaff');
+      return <Badge variant={role === 'Admin' ? 'default' : 'secondary'}>{roleText}</Badge>;
     },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
@@ -90,6 +94,6 @@ export const getColumns = (
   },
   {
     id: 'actions',
-    cell: ({ row }) => <ActionsCell row={row} onEditRole={onEditRole} onDelete={onDelete} />,
+    cell: ({ row }) => <ActionsCell row={row} onEditRole={onEditRole} onDelete={onDelete} t={t} />,
   },
 ];
