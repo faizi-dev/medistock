@@ -7,19 +7,13 @@ const initializeFirebaseAdmin = (): App => {
         return getApps()[0];
     }
 
-    // Use service account in dev/local
-    if (process.env.NODE_ENV !== 'production') {
-        return initializeApp({
-            credential: cert({
-                projectId: process.env.FIREBASE_PROJECT_ID,
-                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-            }),
-        });
-    }
-
-    // In production (e.g., Firebase Hosting), use default credentials
-    return initializeApp();
+    return initializeApp({
+        credential: cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        }),
+    });
 };
 
 const adminApp = initializeFirebaseAdmin();
