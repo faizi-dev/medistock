@@ -5,6 +5,14 @@ import { Timestamp } from 'firebase-admin/firestore';
 import nodemailer from 'nodemailer';
 import type { MedicalItem, UserProfile } from '@/types';
 
+const DEFAULT_TEMPLATE = `<h1>MediStock Expiration Alert</h1>
+<p>The following items in your inventory are expiring within the next 6 weeks:</p>
+<ul>
+  {{{itemsListHtml}}}
+</ul>
+<p>Please review your stock and take appropriate action.</p>
+<p>This is an automated notification from your MediStock system.</p>`;
+
 // This function is the entry point for the cron job.
 export async function GET(req: Request) {
   // Security check: Ensure this request is from a trusted source via a secret token.
@@ -49,8 +57,14 @@ export async function GET(req: Request) {
 
     const expiringItems = itemsSnapshot.docs.map(doc => doc.data() as MedicalItem);
 
-    // 3. Send email notification
-    await sendExpirationEmail(adminEmails, expiringItems);
+    // 3. Fetch email template from settings
+    const emailSettingsDoc = await adminDb.collection('settings').doc('email').get();
+    const emailTemplate = emailSettingsDoc.exists && emailSettingsDoc.data()?.template 
+      ? emailSettingsDoc.data()!.template 
+      : DEFAULT_TEMPLATE;
+
+    // 4. Send email notification
+    await sendExpirationEmail(adminEmails, expiringItems, emailTemplate);
     
     console.log(`Cron job finished. Notified ${adminEmails.length} admin(s) about ${expiringItems.length} expiring item(s).`);
     return NextResponse.json({ message: 'Expiration check complete. Notifications sent.' });
@@ -61,7 +75,7 @@ export async function GET(req: Request) {
   }
 }
 
-async function sendExpirationEmail(adminEmails: string[], items: MedicalItem[]) {
+async function sendExpirationEmail(adminEmails: string[], items: MedicalItem[], template: string) {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
 
   if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
@@ -83,15 +97,7 @@ async function sendExpirationEmail(adminEmails: string[], items: MedicalItem[]) 
     .map(item => `<li><b>${item.name}</b> (Quantity: ${item.quantity}) - Expires on ${item.expirationDate!.toDate().toLocaleDateString()}</li>`)
     .join('');
 
-  const emailHtml = `
-    <h1>MediStock Expiration Alert</h1>
-    <p>The following items in your inventory are expiring within the next 6 weeks:</p>
-    <ul>
-      ${itemsListHtml}
-    </ul>
-    <p>Please review your stock and take appropriate action.</p>
-    <p>This is an automated notification from your MediStock system.</p>
-  `;
+  const emailHtml = template.replace('{{{itemsListHtml}}}', itemsListHtml);
 
   const mailOptions = {
     from: `"MediStock Alert" <${SMTP_USER}>`,

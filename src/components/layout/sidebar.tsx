@@ -8,6 +8,7 @@ import {
   Package,
   Truck,
   Users,
+  Cog,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
@@ -22,6 +23,7 @@ const navItems = [
   { href: '/inventory', labelKey: 'nav.inventory', icon: Package },
   { href: '/vehicles', labelKey: 'nav.vehicles', icon: Truck },
   { href: '/users', labelKey: 'nav.users', icon: Users, adminOnly: true },
+  { href: '/settings', labelKey: 'nav.settings', icon: Cog, adminOnly: true },
 ];
 
 export function Sidebar() {
