@@ -23,7 +23,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 import { UserDialog } from './user-dialog';
+import { CreateUserDialog } from './create-user-dialog';
 import { useLanguage } from '@/context/language-context';
+import { PlusCircle } from 'lucide-react';
 
 export function UsersDataTable() {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -33,6 +35,7 @@ export function UsersDataTable() {
 
   // Dialog states
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
+  const [isCreateUserDialogOpen, setIsCreateUserDialogOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
@@ -49,6 +52,10 @@ export function UsersDataTable() {
     });
     return () => unsubscribe();
   }, []);
+
+  const handleAddNewUser = () => {
+    setIsCreateUserDialogOpen(true);
+  };
 
   const handleEditUser = (user: UserProfile) => {
     setSelectedUser(user);
@@ -118,6 +125,10 @@ export function UsersDataTable() {
           }
           className="max-w-sm"
         />
+        <Button onClick={handleAddNewUser}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            {t('users.actions.addUser')}
+        </Button>
       </div>
       <div className="rounded-md border">
         <Table>
@@ -189,6 +200,10 @@ export function UsersDataTable() {
         setIsOpen={setIsUserDialogOpen}
         user={selectedUser}
         onSuccess={handleUserUpdateSuccess}
+      />
+      <CreateUserDialog
+        isOpen={isCreateUserDialogOpen}
+        setIsOpen={setIsCreateUserDialogOpen}
       />
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
