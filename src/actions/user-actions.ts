@@ -43,11 +43,20 @@ export async function createUser(prevState: any, formData: FormData) {
     
     const { email, password, phone, role } = validatedFields.data;
 
-    const userRecord = await getAuth().createUser({
+    const userCreationRequest: {
+      email: string;
+      password: string;
+      phoneNumber?: string;
+    } = {
       email,
       password,
-      phoneNumber: phone,
-    });
+    };
+  
+    if (phone) {
+      userCreationRequest.phoneNumber = phone;
+    }
+
+    const userRecord = await getAuth().createUser(userCreationRequest);
     
     await getFirestore().collection('users').doc(userRecord.uid).set({
       uid: userRecord.uid,
@@ -58,11 +67,15 @@ export async function createUser(prevState: any, formData: FormData) {
 
     return { type: 'success', message: `User ${email} created successfully.` };
   } catch (error: any) {
-    let message = 'An unexpected error occurred.';
+    let message = 'An unexpected error occurred. Please check the server logs for more details.';
     if (error.code === 'auth/email-already-exists') {
         message = 'This email is already in use by another account.';
     } else if (error.code === 'auth/invalid-password') {
         message = 'The password must be a string with at least six characters.';
+    } else if (error.code === 'auth/invalid-phone-number') {
+        message = 'The phone number provided is not valid. It must be in E.164 format (e.g., +12223334444).';
+    } else if (error.code === 'auth/phone-number-already-exists') {
+        message = 'The phone number is already in use by another account.';
     }
     console.error('Error creating user:', error);
     return { type: 'error', message };
