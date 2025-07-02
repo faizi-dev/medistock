@@ -42,7 +42,7 @@ export function Header() {
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background px-4 sm:px-6 lg:hidden">
       <Sheet>
         <SheetTrigger asChild>
-          <Button size="icon" variant="outline" className="sm:hidden">
+          <Button size="icon" variant="outline">
             <PanelLeft className="h-5 w-5" />
             <span className="sr-only">Toggle Menu</span>
           </Button>
@@ -75,9 +75,6 @@ export function Header() {
           </nav>
         </SheetContent>
       </Sheet>
-      <div className="lg:hidden">
-        <Logo />
-      </div>
       <div className="flex items-center gap-2">
         <LanguageSwitcher />
         <UserNav />
