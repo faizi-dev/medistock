@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import {
   LayoutDashboard,
   Package,
@@ -36,10 +37,11 @@ export function Header() {
   const pathname = usePathname();
   const { user } = useAuth();
   const { t } = useLanguage();
-  
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background px-4 sm:px-6 lg:hidden">
-      <Sheet>
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetTrigger asChild>
           <Button size="icon" variant="outline">
             <PanelLeft className="h-5 w-5" />
@@ -61,6 +63,7 @@ export function Header() {
                 <Link
                   href={item.href}
                   key={item.labelKey}
+                  onClick={() => setIsSheetOpen(false)}
                   className={`flex items-center gap-4 px-2.5 py-2 rounded-lg ${
                     isActive
                       ? 'text-foreground bg-muted'
