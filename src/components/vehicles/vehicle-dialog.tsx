@@ -27,6 +27,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import type { Vehicle } from '@/types';
+import { useLanguage } from '@/context/language-context';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Vehicle name is required'),
@@ -43,6 +44,7 @@ interface VehicleDialogProps {
 
 export function VehicleDialog({ isOpen, setIsOpen, vehicle, onSuccess }: VehicleDialogProps) {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<VehicleFormValues>({
@@ -63,16 +65,26 @@ export function VehicleDialog({ isOpen, setIsOpen, vehicle, onSuccess }: Vehicle
     try {
       if (vehicle) {
         await setDoc(doc(db, 'vehicles', vehicle.id), values, { merge: true });
-        toast({ title: 'Vehicle Updated', description: `Vehicle "${values.name}" has been updated.` });
+        toast({ 
+          title: t('vehicles.toast.updated.title'), 
+          description: t('vehicles.toast.updated.description').replace('{vehicleName}', values.name)
+        });
       } else {
         await addDoc(collection(db, 'vehicles'), values);
-        toast({ title: 'Vehicle Added', description: `Vehicle "${values.name}" has been added.` });
+        toast({ 
+          title: t('vehicles.toast.added.title'), 
+          description: t('vehicles.toast.added.description').replace('{vehicleName}', values.name)
+        });
       }
       onSuccess();
       setIsOpen(false);
     } catch (error) {
       console.error("Error saving vehicle: ", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not save the vehicle. Please try again.' });
+      toast({ 
+        variant: 'destructive', 
+        title: t('vehicles.toast.saveError.title'), 
+        description: t('vehicles.toast.saveError.description')
+      });
     } finally {
       setIsLoading(false);
     }
@@ -82,9 +94,9 @@ export function VehicleDialog({ isOpen, setIsOpen, vehicle, onSuccess }: Vehicle
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{vehicle ? 'Edit Vehicle' : 'Add New Vehicle'}</DialogTitle>
+          <DialogTitle>{vehicle ? t('vehicles.dialog.editTitle') : t('vehicles.dialog.addTitle')}</DialogTitle>
           <DialogDescription>
-            {vehicle ? 'Update the vehicle details.' : 'Fill in the details for the new vehicle.'}
+            {vehicle ? t('vehicles.dialog.editDescription') : t('vehicles.dialog.addDescription')}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -94,19 +106,19 @@ export function VehicleDialog({ isOpen, setIsOpen, vehicle, onSuccess }: Vehicle
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Vehicle Name</FormLabel>
+                  <FormLabel>{t('vehicles.dialog.nameLabel')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Ambulance A-101" {...field} />
+                    <Input placeholder={t('vehicles.dialog.namePlaceholder')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>Cancel</Button>
+              <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>{t('vehicles.dialog.cancel')}</Button>
               <Button type="submit" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save
+                {t('vehicles.dialog.save')}
               </Button>
             </DialogFooter>
           </form>

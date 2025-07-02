@@ -14,10 +14,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Vehicle } from '@/types';
+import type { TranslationKey } from '@/lib/translations';
 
 export const getColumns = (
   onEdit: (vehicle: Vehicle) => void,
-  onDelete: (vehicle: Vehicle) => void
+  onDelete: (vehicle: Vehicle) => void,
+  t: (key: TranslationKey) => string
 ): ColumnDef<Vehicle>[] => [
   {
     accessorKey: 'name',
@@ -27,7 +29,7 @@ export const getColumns = (
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
-          Vehicle Name
+          {t('vehicles.columns.name')}
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
@@ -53,19 +55,19 @@ export const getColumns = (
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{t('vehicles.columns.actions')}</DropdownMenuLabel>
             <DropdownMenuItem asChild>
-              <Link href={`/vehicles/${vehicle.id}`}>View Inventory</Link>
+              <Link href={`/vehicles/${vehicle.id}`}>{t('vehicles.actions.viewInventory')}</Link>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onEdit(vehicle)}>
-              Edit Vehicle
+              {t('vehicles.actions.edit')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               onClick={() => onDelete(vehicle)}
             >
-              Delete Vehicle
+              {t('vehicles.actions.delete')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

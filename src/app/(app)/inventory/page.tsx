@@ -1,3 +1,4 @@
+'use client';
 
 import { PageHeader } from "@/components/shared/page-header";
 import { InventoryDataTable } from "@/components/inventory/data-table";

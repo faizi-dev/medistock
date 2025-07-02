@@ -40,6 +40,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 import { PlusCircle } from 'lucide-react';
+import { useLanguage } from '@/context/language-context';
 
 export function VehiclesDataTable() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -52,6 +53,7 @@ export function VehiclesDataTable() {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   useEffect(() => {
     const q = query(collection(db, 'vehicles'));
@@ -82,9 +84,16 @@ export function VehiclesDataTable() {
     if (vehicleToDelete) {
       try {
         await deleteDoc(doc(db, 'vehicles', vehicleToDelete.id));
-        toast({ title: "Vehicle Deleted", description: `Vehicle "${vehicleToDelete.name}" has been removed.` });
+        toast({ 
+          title: t('vehicles.toast.deleted.title'), 
+          description: t('vehicles.toast.deleted.description').replace('{vehicleName}', vehicleToDelete.name)
+        });
       } catch (error) {
-        toast({ variant: 'destructive', title: "Error", description: "Could not delete vehicle. Make sure all items are unassigned first." });
+        toast({ 
+          variant: 'destructive', 
+          title: t('vehicles.toast.deleteError.title'), 
+          description: t('vehicles.toast.deleteError.description')
+        });
       } finally {
         setIsAlertOpen(false);
         setVehicleToDelete(null);
@@ -92,7 +101,7 @@ export function VehiclesDataTable() {
     }
   };
 
-  const columns = useMemo(() => getColumns(handleEdit, handleDelete), []);
+  const columns = useMemo(() => getColumns(handleEdit, handleDelete, t), [t]);
 
   const table = useReactTable({
     data: vehicles,
@@ -113,7 +122,7 @@ export function VehiclesDataTable() {
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
       <div className="flex items-center justify-between mb-4">
         <Input
-          placeholder="Filter vehicles..."
+          placeholder={t('vehicles.filterPlaceholder')}
           value={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
           onChange={(event) =>
             table.getColumn('name')?.setFilterValue(event.target.value)
@@ -122,7 +131,7 @@ export function VehiclesDataTable() {
         />
         <Button onClick={handleAddNew}>
           <PlusCircle className="mr-2 h-4 w-4" />
-          Add Vehicle
+          {t('vehicles.addVehicle')}
         </Button>
       </div>
       <div className="rounded-md border">
@@ -165,7 +174,7 @@ export function VehiclesDataTable() {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No vehicles found.
+                  {t('vehicles.noVehicles')}
                 </TableCell>
               </TableRow>
             )}
@@ -179,7 +188,7 @@ export function VehiclesDataTable() {
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
         >
-          Previous
+          {t('vehicles.previous')}
         </Button>
         <Button
           variant="outline"
@@ -187,7 +196,7 @@ export function VehiclesDataTable() {
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
         >
-          Next
+          {t('vehicles.next')}
         </Button>
       </div>
       <VehicleDialog
@@ -199,16 +208,15 @@ export function VehiclesDataTable() {
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>{t('vehicles.deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the vehicle
-              "{vehicleToDelete?.name}".
+              {t('vehicles.deleteDialog.description').replace('{vehicleName}', vehicleToDelete?.name || '')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('vehicles.deleteDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
-              Delete
+              {t('vehicles.deleteDialog.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
