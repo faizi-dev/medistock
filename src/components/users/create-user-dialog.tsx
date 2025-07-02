@@ -65,6 +65,11 @@ export function CreateUserDialog({ isOpen, setIsOpen }: CreateUserDialogProps) {
         </DialogHeader>
         <form action={formAction} className="space-y-4 py-4" key={isOpen ? 'open' : 'closed'}>
             <div className="space-y-2">
+                <Label htmlFor="fullName">{t('users.createUserDialog.fullNameLabel')}</Label>
+                <Input id="fullName" name="fullName" type="text" placeholder={t('users.createUserDialog.fullNamePlaceholder')} required />
+                {state?.errors?.fullName && <p className="text-sm font-medium text-destructive">{state.errors.fullName[0]}</p>}
+            </div>
+            <div className="space-y-2">
                 <Label htmlFor="email">{t('users.createUserDialog.emailLabel')}</Label>
                 <Input id="email" name="email" type="email" placeholder={t('users.createUserDialog.emailPlaceholder')} required />
                 {state?.errors?.email && <p className="text-sm font-medium text-destructive">{state.errors.email[0]}</p>}

@@ -20,6 +20,8 @@ export interface UserProfile {
   email: string | null;
   role: 'Admin' | 'Staff';
   phone?: string;
+  fullName: string;
+  createdAt: Timestamp;
 }
 
 export interface ReorderingSuggestion {

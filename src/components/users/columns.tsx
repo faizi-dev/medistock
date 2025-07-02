@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import type { UserProfile } from '@/types';
 import { useAuth } from '@/hooks/use-auth';
 import type { TranslationKey } from '@/lib/translations';
+import { format } from 'date-fns';
 
 const ActionsCell = ({ row, onEdit, onDelete, t }: {
   row: any;
@@ -60,17 +61,22 @@ export const getColumns = (
   t: (key: TranslationKey) => string
 ): ColumnDef<UserProfile>[] => [
   {
-    accessorKey: 'email',
+    accessorKey: 'fullName',
     header: ({ column }) => (
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
       >
-        {t('users.columns.email')}
+        {t('users.columns.fullName')}
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => <div className="font-medium pl-4">{row.getValue('email')}</div>,
+    cell: ({ row }) => <div className="font-medium pl-4">{row.getValue('fullName')}</div>,
+  },
+  {
+    accessorKey: 'email',
+    header: t('users.columns.email'),
+    cell: ({ row }) => <div>{row.getValue('email')}</div>,
   },
   {
     accessorKey: 'phone',
@@ -87,6 +93,22 @@ export const getColumns = (
     },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
+    },
+  },
+    {
+    accessorKey: 'createdAt',
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+      >
+        {t('users.columns.createdAt')}
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => {
+      const date = row.original.createdAt?.toDate();
+      return date ? format(date, 'MMM d, yyyy') : 'N/A';
     },
   },
   {

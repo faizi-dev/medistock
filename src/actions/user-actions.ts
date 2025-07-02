@@ -3,10 +3,11 @@
 
 import { initializeApp, getApps, App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import * as z from 'zod';
 
 const CreateUserSchema = z.object({
+  fullName: z.string().min(1, { message: 'Full name is required.' }),
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters long.' }),
   phone: z.string().optional(),
@@ -28,6 +29,7 @@ export async function createUser(prevState: any, formData: FormData) {
     initializeFirebaseAdmin();
 
     const validatedFields = CreateUserSchema.safeParse({
+      fullName: formData.get('fullName'),
       email: formData.get('email'),
       password: formData.get('password'),
       phone: formData.get('phone'),
@@ -42,18 +44,21 @@ export async function createUser(prevState: any, formData: FormData) {
       };
     }
     
-    const { email, password, phone, role } = validatedFields.data;
+    const { fullName, email, password, phone, role } = validatedFields.data;
 
     const userRecord = await getAuth().createUser({
       email,
       password,
+      displayName: fullName,
     });
     
     await getFirestore().collection('users').doc(userRecord.uid).set({
       uid: userRecord.uid,
       email: userRecord.email,
+      fullName: fullName,
       role: role,
       phone: phone || '',
+      createdAt: Timestamp.now(),
     });
 
     return { type: 'success', message: `User ${email} created successfully.` };

@@ -38,6 +38,7 @@ import type { UserProfile } from '@/types';
 import { useLanguage } from '@/context/language-context';
 
 const formSchema = z.object({
+  fullName: z.string().min(1, 'Full name is required.'),
   role: z.enum(['Admin', 'Staff']),
   phone: z.string().optional(),
 });
@@ -58,12 +59,12 @@ export function UserDialog({ isOpen, setIsOpen, user, onSuccess }: UserDialogPro
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { role: user?.role || 'Staff', phone: user?.phone || '' },
+    defaultValues: { fullName: user?.fullName || '', role: user?.role || 'Staff', phone: user?.phone || '' },
   });
 
   useEffect(() => {
     if (user) {
-      form.reset({ role: user.role, phone: user.phone || '' });
+      form.reset({ fullName: user.fullName || '', role: user.role, phone: user.phone || '' });
     }
   }, [user, form]);
 
@@ -73,6 +74,7 @@ export function UserDialog({ isOpen, setIsOpen, user, onSuccess }: UserDialogPro
     try {
       const userDocRef = doc(db, 'users', user.uid);
       await updateDoc(userDocRef, {
+        fullName: values.fullName,
         role: values.role,
         phone: values.phone || '',
       });
@@ -101,6 +103,19 @@ export function UserDialog({ isOpen, setIsOpen, user, onSuccess }: UserDialogPro
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+             <FormField
+                control={form.control}
+                name="fullName"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>{t('users.userDialog.fullNameLabel')}</FormLabel>
+                    <FormControl>
+                        <Input placeholder={t('users.userDialog.fullNamePlaceholder')} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
              <FormField
                 control={form.control}
                 name="phone"

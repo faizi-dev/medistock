@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import type { UserProfile } from '@/types';
 
@@ -36,7 +36,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser({ ...firebaseUser, ...userProfile });
         } else {
           // Handle case where user exists in Auth but not Firestore
-           setUser({ ...firebaseUser, email: firebaseUser.email, uid: firebaseUser.uid, role: 'Staff'});
+           setUser({ 
+               ...firebaseUser,
+                email: firebaseUser.email, 
+                uid: firebaseUser.uid,
+                role: 'Staff',
+                fullName: firebaseUser.displayName || 'New User',
+                createdAt: Timestamp.now(),
+            });
         }
       } else {
         setUser(null);
