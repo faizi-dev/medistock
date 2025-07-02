@@ -147,6 +147,21 @@ export function InventoryDataTable() {
               ))}
             </SelectContent>
           </Select>
+          <Select
+            value={(table.getColumn('status')?.getFilterValue() as string) ?? 'all'}
+            onValueChange={(value) => table.getColumn('status')?.setFilterValue(value)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder={t('inventory.filterByStatus')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('inventory.allStatuses')}</SelectItem>
+              <SelectItem value="inStock">{t('inventory.status.inStock')}</SelectItem>
+              <SelectItem value="lowStock">{t('inventory.status.lowStock')}</SelectItem>
+              <SelectItem value="expiringSoon">{t('inventory.status.expiringSoon')}</SelectItem>
+              <SelectItem value="expired">{t('inventory.status.expired')}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <Button onClick={handleAddNew}>
           <PlusCircle className="mr-2 h-4 w-4" />

@@ -17,21 +17,21 @@ import type { MedicalItem } from '@/types';
 import type { TranslationKey } from '@/lib/translations';
 import { format } from 'date-fns';
 
-const getStatus = (item: MedicalItem, t: (key: TranslationKey) => string): { text: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' } => {
+const getStatus = (item: MedicalItem, t: (key: TranslationKey) => string): { key: 'inStock' | 'lowStock' | 'expiringSoon' | 'expired'; text: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' } => {
   if (item.expirationDate && item.expirationDate.toDate() < new Date()) {
-    return { text: t('inventory.status.expired'), variant: 'destructive' };
+    return { key: 'expired', text: t('inventory.status.expired'), variant: 'destructive' };
   }
   if (item.quantity <= item.lowStockThreshold) {
-    return { text: t('inventory.status.lowStock'), variant: 'destructive' };
+    return { key: 'lowStock', text: t('inventory.status.lowStock'), variant: 'destructive' };
   }
   if (item.expirationDate) {
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
     if (item.expirationDate.toDate() < thirtyDaysFromNow) {
-      return { text: t('inventory.status.expiringSoon'), variant: 'outline' };
+      return { key: 'expiringSoon', text: t('inventory.status.expiringSoon'), variant: 'outline' };
     }
   }
-  return { text: t('inventory.status.inStock'), variant: 'secondary' };
+  return { key: 'inStock', text: t('inventory.status.inStock'), variant: 'secondary' };
 };
 
 
@@ -107,6 +107,10 @@ export const getColumns = (
     cell: ({ row }) => {
       const status = getStatus(row.original, t);
       return <Badge variant={status.variant}>{status.text}</Badge>;
+    },
+    filterFn: (row, id, value) => {
+      if (!value || value === 'all') return true;
+      return getStatus(row.original, t).key === value;
     },
   },
   {
