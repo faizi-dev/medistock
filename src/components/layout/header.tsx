@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Package,
   Truck,
-  Lightbulb,
   Users,
   PanelLeft,
 } from 'lucide-react';
@@ -30,7 +29,6 @@ const navItems = [
   { href: '/dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard },
   { href: '/inventory', labelKey: 'nav.inventory', icon: Package },
   { href: '/vehicles', labelKey: 'nav.vehicles', icon: Truck },
-  { href: '/smart-alerts', labelKey: 'nav.smartAlerts', icon: Lightbulb },
   { href: '/users', labelKey: 'nav.users', icon: Users, adminOnly: true },
 ];
 
