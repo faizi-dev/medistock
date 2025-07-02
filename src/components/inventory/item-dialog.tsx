@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -34,13 +34,16 @@ import {
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Loader2 } from 'lucide-react';
+import { CalendarIcon, Loader2, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { MedicalItem, Vehicle } from '@/types';
 import { Timestamp } from 'firebase/firestore';
 import { useLanguage } from '@/context/language-context';
 import { useAuth } from '@/hooks/use-auth';
+import { Html5QrcodeScanner } from 'html5-qrcode';
+import type { Html5QrcodeScannerConfig, QrCodeSuccessCallback } from 'html5-qrcode';
+
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -67,6 +70,8 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [allItems, setAllItems] = useState<MedicalItem[]>([]);
   const { user: authUser } = useAuth();
+  const [isScannerVisible, setIsScannerVisible] = useState(false);
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   const uniqueItemsByName = useMemo(() => {
     const seen = new Set<string>();
@@ -80,22 +85,6 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
         }
     });
   }, [allItems]);
-
-  useEffect(() => {
-    async function fetchData() {
-      const vehiclesSnapshot = await getDocs(collection(db, 'vehicles'));
-      const vehiclesList = vehiclesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Vehicle);
-      setVehicles(vehiclesList);
-
-      const itemsSnapshot = await getDocs(collection(db, 'items'));
-      const itemsList = itemsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as MedicalItem);
-      setAllItems(itemsList);
-    }
-    
-    if (isOpen) {
-      fetchData();
-    }
-  }, [isOpen]);
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(formSchema),
@@ -112,6 +101,25 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
           vehicleId: '',
         },
   });
+
+  const barcodeValue = form.watch('barcode');
+  
+  useEffect(() => {
+    if (!isOpen) {
+        setIsScannerVisible(false);
+    } else {
+        async function fetchData() {
+            const vehiclesSnapshot = await getDocs(collection(db, 'vehicles'));
+            const vehiclesList = vehiclesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Vehicle);
+            setVehicles(vehiclesList);
+
+            const itemsSnapshot = await getDocs(collection(db, 'items'));
+            const itemsList = itemsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as MedicalItem);
+            setAllItems(itemsList);
+        }
+        fetchData();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -132,6 +140,58 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
       }
     }
   }, [item, form, isOpen]);
+
+  useEffect(() => {
+    if (!item && barcodeValue && allItems.length > 0) { // Only run for new items with a barcode
+        const existingItem = allItems.find(i => i.barcode === barcodeValue);
+        if (existingItem) {
+            form.setValue("name", existingItem.name, { shouldValidate: true });
+            form.setValue("lowStockThreshold", existingItem.lowStockThreshold, { shouldValidate: true });
+            toast({
+                title: 'Item Recognized',
+                description: `Details for '${existingItem.name}' have been pre-filled.`
+            });
+        }
+    }
+  }, [barcodeValue, allItems, item, form, toast]);
+
+    useEffect(() => {
+    if (isScannerVisible) {
+        const config: Html5QrcodeScannerConfig = {
+            qrbox: { width: 250, height: 150 },
+            fps: 10,
+            rememberLastUsedCamera: true,
+        };
+
+        const onScanSuccess: QrCodeSuccessCallback = (decodedText, decodedResult) => {
+            if (scannerRef.current) {
+                scannerRef.current.clear().catch(error => {
+                    console.error("Failed to clear scanner", error);
+                });
+            }
+            setIsScannerVisible(false);
+            form.setValue('barcode', decodedText, { shouldValidate: true });
+            toast({ title: "Barcode Scanned", description: `Scanned: ${decodedText}` });
+        };
+
+        const onScanFailure = (error: string) => {
+            // This callback is called frequently, so we can ignore it to avoid spamming the console.
+        };
+
+        scannerRef.current = new Html5QrcodeScanner("reader", config, false);
+        scannerRef.current.render(onScanSuccess, onScanFailure);
+    } else {
+        if (scannerRef.current) {
+            scannerRef.current.clear().catch(error => {});
+        }
+    }
+
+    return () => {
+        if (scannerRef.current) {
+            scannerRef.current.clear().catch(error => {});
+        }
+    };
+}, [isScannerVisible, form, toast]);
 
   const onSubmit = async (values: ItemFormValues) => {
     setIsLoading(true);
@@ -191,18 +251,6 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
                       {...field}
                       list="item-names"
                       autoComplete="off"
-                      onChange={(e) => {
-                        field.onChange(e);
-                        if (!item) { // Only pre-fill when creating a new item
-                            const selectedItem = uniqueItemsByName.find(
-                                (i) => i.name.toLowerCase() === e.target.value.toLowerCase()
-                            );
-                            if (selectedItem) {
-                                form.setValue("barcode", selectedItem.barcode || '', { shouldValidate: true });
-                                form.setValue("lowStockThreshold", selectedItem.lowStockThreshold, { shouldValidate: true });
-                            }
-                        }
-                      }}
                     />
                   </FormControl>
                   <datalist id="item-names">
@@ -311,13 +359,38 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('inventory.itemDialog.barcodeLabel')}</FormLabel>
-                  <FormControl>
-                    <Input placeholder={t('inventory.itemDialog.barcodePlaceholder')} {...field} />
-                  </FormControl>
+                   <div className="flex items-center gap-2">
+                    <FormControl>
+                      <Input placeholder={t('inventory.itemDialog.barcodePlaceholder')} {...field} />
+                    </FormControl>
+                     <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setIsScannerVisible(v => !v)}
+                    >
+                      <Camera className="h-4 w-4" />
+                      <span className="sr-only">Scan Barcode</span>
+                    </Button>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            {isScannerVisible && (
+              <div className="p-4 my-4 border rounded-md bg-card">
+                <div id="reader" className="w-full"></div>
+                 <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="w-full mt-2"
+                    onClick={() => setIsScannerVisible(false)}
+                >
+                    Cancel Scan
+                </Button>
+              </div>
+            )}
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>{t('inventory.itemDialog.cancel')}</Button>
               <Button type="submit" disabled={isLoading}>
