@@ -12,21 +12,24 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { useLanguage } from '@/context/language-context';
 import { Button } from '@/components/ui/button';
 import { Logo } from './logo';
 import { UserNav } from './user-nav';
+import { LanguageSwitcher } from './language-switcher';
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/inventory', label: 'Inventory', icon: Package },
-  { href: '/vehicles', label: 'Vehicles', icon: Truck },
-  { href: '/smart-alerts', label: 'Smart Alerts', icon: Lightbulb },
-  { href: '/users', label: 'Users', icon: Users, adminOnly: true },
+  { href: '/dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard },
+  { href: '/inventory', labelKey: 'nav.inventory', icon: Package },
+  { href: '/vehicles', labelKey: 'nav.vehicles', icon: Truck },
+  { href: '/smart-alerts', labelKey: 'nav.smartAlerts', icon: Lightbulb },
+  { href: '/users', labelKey: 'nav.users', icon: Users, adminOnly: true },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { t } = useLanguage();
 
   return (
     <aside className="hidden h-screen w-64 flex-col border-r bg-sidebar text-sidebar-foreground shadow-lg lg:flex">
@@ -41,7 +44,7 @@ export function Sidebar() {
             }
             const isActive = pathname.startsWith(item.href);
             return (
-              <Link href={item.href} key={item.label}>
+              <Link href={item.href} key={item.labelKey}>
                 <Button
                   variant={isActive ? 'secondary' : 'ghost'}
                   className={cn(
@@ -51,15 +54,16 @@ export function Sidebar() {
                   )}
                 >
                   <item.icon className="mr-3 h-5 w-5" />
-                  {item.label}
+                  {t(item.labelKey as any)}
                 </Button>
               </Link>
             );
           })}
         </nav>
       </div>
-      <div className="border-t p-4">
+      <div className="border-t p-4 flex items-center justify-between">
         <UserNav />
+        <LanguageSwitcher />
       </div>
     </aside>
   );

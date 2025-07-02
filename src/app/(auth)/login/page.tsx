@@ -10,6 +10,7 @@ import * as z from 'zod';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/context/language-context';
 import { Button } from '@/components/ui/button';
 import {
   CardContent,
@@ -39,6 +40,7 @@ type LoginFormValues = z.infer<typeof formSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [isLoading, setIsLoading] = React.useState(false);
 
   const form = useForm<LoginFormValues>({
@@ -71,9 +73,9 @@ export default function LoginPage() {
   return (
     <>
       <CardHeader>
-        <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
+        <CardTitle className="text-2xl font-headline">{t('login.title')}</CardTitle>
         <CardDescription>
-          Enter your credentials to access your account.
+          {t('login.description')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -84,9 +86,9 @@ export default function LoginPage() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>{t('login.emailLabel')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="name@example.com" {...field} />
+                    <Input placeholder={t('login.emailPlaceholder')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -97,7 +99,7 @@ export default function LoginPage() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>{t('login.passwordLabel')}</FormLabel>
                   <FormControl>
                     <Input type="password" placeholder="••••••••" {...field} />
                   </FormControl>
@@ -107,19 +109,19 @@ export default function LoginPage() {
             />
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Sign In
+              {t('login.signInButton')}
             </Button>
           </form>
         </Form>
       </CardContent>
       <CardFooter className="text-sm">
         <p className="text-muted-foreground">
-          Don&apos;t have an account?{' '}
+          {t('login.noAccount')}{' '}
           <Link
             href="/signup"
             className="font-medium text-primary hover:underline"
           >
-            Sign up
+            {t('login.signUpLink')}
           </Link>
         </p>
       </CardFooter>

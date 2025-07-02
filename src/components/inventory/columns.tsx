@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
@@ -13,30 +14,32 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import type { MedicalItem } from '@/types';
+import type { TranslationKey } from '@/lib/translations';
 import { format } from 'date-fns';
 
-const getStatus = (item: MedicalItem): { text: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' } => {
+const getStatus = (item: MedicalItem, t: (key: TranslationKey) => string): { text: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' } => {
   if (item.expirationDate && item.expirationDate.toDate() < new Date()) {
-    return { text: 'Expired', variant: 'destructive' };
+    return { text: t('inventory.status.expired'), variant: 'destructive' };
   }
   if (item.quantity <= item.lowStockThreshold) {
-    return { text: 'Low Stock', variant: 'destructive' };
+    return { text: t('inventory.status.lowStock'), variant: 'destructive' };
   }
   if (item.expirationDate) {
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
     if (item.expirationDate.toDate() < thirtyDaysFromNow) {
-      return { text: 'Expiring Soon', variant: 'outline' };
+      return { text: t('inventory.status.expiringSoon'), variant: 'outline' };
     }
   }
-  return { text: 'In Stock', variant: 'secondary' };
+  return { text: t('inventory.status.inStock'), variant: 'secondary' };
 };
 
 
 export const getColumns = (
   vehicles: { id: string; name: string }[],
   onEdit: (item: MedicalItem) => void,
-  onDelete: (item: MedicalItem) => void
+  onDelete: (item: MedicalItem) => void,
+  t: (key: TranslationKey) => string
 ): ColumnDef<MedicalItem>[] => [
   {
     accessorKey: 'name',
@@ -46,7 +49,7 @@ export const getColumns = (
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
-          Item Name
+          {t('inventory.columns.name')}
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
@@ -55,11 +58,11 @@ export const getColumns = (
   },
   {
     accessorKey: 'vehicleId',
-    header: 'Vehicle',
+    header: t('inventory.columns.vehicle'),
     cell: ({ row }) => {
       const vehicleId = row.getValue('vehicleId') as string;
       const vehicle = vehicles.find((v) => v.id === vehicleId);
-      return vehicle ? vehicle.name : 'Unassigned';
+      return vehicle ? vehicle.name : t('inventory.columns.unassigned');
     },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
@@ -73,7 +76,7 @@ export const getColumns = (
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
-          Quantity
+          {t('inventory.columns.quantity')}
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
@@ -88,7 +91,7 @@ export const getColumns = (
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
-          Expires
+          {t('inventory.columns.expires')}
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
@@ -100,9 +103,9 @@ export const getColumns = (
   },
   {
     id: 'status',
-    header: 'Status',
+    header: t('inventory.columns.status'),
     cell: ({ row }) => {
-      const status = getStatus(row.original);
+      const status = getStatus(row.original, t);
       return <Badge variant={status.variant}>{status.text}</Badge>;
     },
   },
@@ -119,16 +122,16 @@ export const getColumns = (
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{t('inventory.columns.actions')}</DropdownMenuLabel>
             <DropdownMenuItem onClick={() => onEdit(item)}>
-              Edit Item
+              {t('inventory.actions.edit')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               onClick={() => onDelete(item)}
             >
-              Delete Item
+              {t('inventory.actions.delete')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

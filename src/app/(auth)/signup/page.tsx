@@ -11,6 +11,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/context/language-context';
 import { Button } from '@/components/ui/button';
 import {
   CardContent,
@@ -56,6 +57,7 @@ type SignUpFormValues = z.infer<typeof formSchema>;
 export default function SignUpPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [isLoading, setIsLoading] = React.useState(false);
 
   const form = useForm<SignUpFormValues>({
@@ -106,9 +108,9 @@ export default function SignUpPage() {
   return (
     <>
       <CardHeader>
-        <CardTitle className="text-2xl font-headline">Create an Account</CardTitle>
+        <CardTitle className="text-2xl font-headline">{t('signup.title')}</CardTitle>
         <CardDescription>
-          Fill in the details below to create your account.
+          {t('signup.description')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -119,11 +121,11 @@ export default function SignUpPage() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>{t('signup.emailLabel')}</FormLabel>
                   <FormControl>
                     <Input
                       type="email"
-                      placeholder="name@example.com"
+                      placeholder={t('signup.emailPlaceholder')}
                       {...field}
                     />
                   </FormControl>
@@ -136,7 +138,7 @@ export default function SignUpPage() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>{t('signup.passwordLabel')}</FormLabel>
                   <FormControl>
                     <Input type="password" placeholder="••••••••" {...field} />
                   </FormControl>
@@ -149,7 +151,7 @@ export default function SignUpPage() {
               name="confirmPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Confirm Password</FormLabel>
+                  <FormLabel>{t('signup.confirmPasswordLabel')}</FormLabel>
                   <FormControl>
                     <Input type="password" placeholder="••••••••" {...field} />
                   </FormControl>
@@ -162,19 +164,19 @@ export default function SignUpPage() {
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Role</FormLabel>
+                  <FormLabel>{t('signup.roleLabel')}</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a role" />
+                        <SelectValue placeholder={t('signup.rolePlaceholder')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Staff">Staff</SelectItem>
-                      <SelectItem value="Admin">Admin</SelectItem>
+                      <SelectItem value="Staff">{t('signup.roleStaff')}</SelectItem>
+                      <SelectItem value="Admin">{t('signup.roleAdmin')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -183,16 +185,16 @@ export default function SignUpPage() {
             />
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Account
+              {t('signup.createAccountButton')}
             </Button>
           </form>
         </Form>
       </CardContent>
       <CardFooter className="text-sm">
         <p className="text-muted-foreground">
-          Already have an account?{' '}
+          {t('signup.haveAccount')}{' '}
           <Link href="/login" className="font-medium text-primary hover:underline">
-            Sign In
+            {t('signup.signInLink')}
           </Link>
         </p>
       </CardFooter>

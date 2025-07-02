@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useLanguage } from '@/context/language-context';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -22,18 +23,20 @@ import {
 } from '@/components/ui/sheet';
 import { Logo } from './logo';
 import { UserNav } from './user-nav';
+import { LanguageSwitcher } from './language-switcher';
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/inventory', label: 'Inventory', icon: Package },
-  { href: '/vehicles', label: 'Vehicles', icon: Truck },
-  { href: '/smart-alerts', label: 'Smart Alerts', icon: Lightbulb },
-  { href: '/users', label: 'Users', icon: Users, adminOnly: true },
+  { href: '/dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard },
+  { href: '/inventory', labelKey: 'nav.inventory', icon: Package },
+  { href: '/vehicles', labelKey: 'nav.vehicles', icon: Truck },
+  { href: '/smart-alerts', labelKey: 'nav.smartAlerts', icon: Lightbulb },
+  { href: '/users', labelKey: 'nav.users', icon: Users, adminOnly: true },
 ];
 
 export function Header() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { t } = useLanguage();
   
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background px-4 sm:px-6 lg:hidden">
@@ -57,7 +60,7 @@ export function Header() {
               return (
                 <Link
                   href={item.href}
-                  key={item.label}
+                  key={item.labelKey}
                   className={`flex items-center gap-4 px-2.5 py-2 rounded-lg ${
                     isActive
                       ? 'text-foreground bg-muted'
@@ -65,7 +68,7 @@ export function Header() {
                   }`}
                 >
                   <item.icon className="h-5 w-5" />
-                  {item.label}
+                  {t(item.labelKey as any)}
                 </Link>
               );
             })}
@@ -75,7 +78,10 @@ export function Header() {
       <div className="lg:hidden">
         <Logo />
       </div>
-      <UserNav />
+      <div className="flex items-center gap-2">
+        <LanguageSwitcher />
+        <UserNav />
+      </div>
     </header>
   );
 }

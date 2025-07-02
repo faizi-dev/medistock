@@ -1,3 +1,4 @@
+
 'use client';
 
 import { signOut } from 'firebase/auth';
@@ -5,6 +6,7 @@ import { LogOut, User as UserIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useLanguage } from '@/context/language-context';
 import { auth } from '@/lib/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -21,6 +23,7 @@ import { Skeleton } from '../ui/skeleton';
 
 export function UserNav() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -64,13 +67,13 @@ export function UserNav() {
         <DropdownMenuGroup>
           <DropdownMenuItem>
             <UserIcon className="mr-2 h-4 w-4" />
-            <span>Profile</span>
+            <span>{t('userNav.profile')}</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <span>{t('userNav.logout')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

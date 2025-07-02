@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,11 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Truck, Package, AlertTriangle, Bell, Boxes } from 'lucide-react';
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, CartesianGrid } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLanguage } from '@/context/language-context';
 
 export default function DashboardPage() {
   const [items, setItems] = useState<MedicalItem[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const itemsQuery = query(collection(db, 'items'));
@@ -79,19 +82,19 @@ export default function DashboardPage() {
   return (
     <>
       <PageHeader
-        title="Dashboard"
-        description="An overview of your medical supply inventory."
+        title={t('dashboard.title')}
+        description={t('dashboard.description')}
       />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard isLoading={loading} title="Total Vehicles" value={vehicles.length} icon={Truck} description="Number of active vehicles" />
-        <StatsCard isLoading={loading} title="Total Items" value={totalItems} icon={Boxes} description="Total quantity of all items" />
-        <StatsCard isLoading={loading} title="Low Stock Alerts" value={lowStockItems} icon={AlertTriangle} description="Items below threshold" />
-        <StatsCard isLoading={loading} title="Expiring Soon" value={expiringSoonItems} icon={Bell} description="Items expiring in 30 days" />
+        <StatsCard isLoading={loading} title={t('dashboard.totalVehicles')} value={vehicles.length} icon={Truck} description={t('dashboard.totalVehiclesDesc')} />
+        <StatsCard isLoading={loading} title={t('dashboard.totalItems')} value={totalItems} icon={Boxes} description={t('dashboard.totalItemsDesc')} />
+        <StatsCard isLoading={loading} title={t('dashboard.lowStock')} value={lowStockItems} icon={AlertTriangle} description={t('dashboard.lowStockDesc')} />
+        <StatsCard isLoading={loading} title={t('dashboard.expiringSoon')} value={expiringSoonItems} icon={Bell} description={t('dashboard.expiringSoonDesc')} />
       </div>
       <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle>Inventory by Vehicle</CardTitle>
+            <CardTitle>{t('dashboard.inventoryByVehicle')}</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
             {loading ? <Skeleton className="h-[350px] w-full" /> : 
@@ -115,7 +118,7 @@ export default function DashboardPage() {
         </Card>
         <Card className="col-span-4 lg:col-span-3">
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>{t('dashboard.recentActivity')}</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -125,7 +128,7 @@ export default function DashboardPage() {
                 <Skeleton className="h-10 w-full" />
               </div>
             ) : (
-              <p className="text-muted-foreground">No recent activity to display.</p>
+              <p className="text-muted-foreground">{t('dashboard.noRecentActivity')}</p>
             )}
           </CardContent>
         </Card>

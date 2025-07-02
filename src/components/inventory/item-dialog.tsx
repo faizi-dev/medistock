@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -39,6 +40,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { MedicalItem, Vehicle } from '@/types';
 import { Timestamp } from 'firebase/firestore';
+import { useLanguage } from '@/context/language-context';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -60,6 +62,7 @@ interface ItemDialogProps {
 
 export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogProps) {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
@@ -136,9 +139,9 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{item ? 'Edit Item' : 'Add New Item'}</DialogTitle>
+          <DialogTitle>{item ? t('inventory.itemDialog.editTitle') : t('inventory.itemDialog.addTitle')}</DialogTitle>
           <DialogDescription>
-            {item ? 'Update the details of the medical supply.' : 'Fill in the details for the new medical supply.'}
+            {item ? t('inventory.itemDialog.editDescription') : t('inventory.itemDialog.addDescription')}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -148,9 +151,9 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Item Name</FormLabel>
+                  <FormLabel>{t('inventory.itemDialog.nameLabel')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Band-Aids" {...field} />
+                    <Input placeholder={t('inventory.itemDialog.namePlaceholder')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -161,11 +164,11 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
               name="vehicleId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Vehicle</FormLabel>
+                  <FormLabel>{t('inventory.itemDialog.vehicleLabel')}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Assign to a vehicle" />
+                        <SelectValue placeholder={t('inventory.itemDialog.vehiclePlaceholder')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -184,7 +187,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
                 name="quantity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Quantity</FormLabel>
+                    <FormLabel>{t('inventory.itemDialog.quantityLabel')}</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -197,7 +200,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
                 name="lowStockThreshold"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Low Stock Threshold</FormLabel>
+                    <FormLabel>{t('inventory.itemDialog.lowStockLabel')}</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -211,7 +214,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
               name="expirationDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Expiration Date</FormLabel>
+                  <FormLabel>{t('inventory.itemDialog.expirationDateLabel')}</FormLabel>
                    <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -225,7 +228,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
                           {field.value ? (
                             format(field.value, "PPP")
                           ) : (
-                            <span>Pick a date</span>
+                            <span>{t('inventory.itemDialog.pickDate')}</span>
                           )}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
@@ -252,19 +255,19 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
               name="barcode"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Barcode (Optional)</FormLabel>
+                  <FormLabel>{t('inventory.itemDialog.barcodeLabel')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Scan or enter barcode" {...field} />
+                    <Input placeholder={t('inventory.itemDialog.barcodePlaceholder')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>Cancel</Button>
+              <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>{t('inventory.itemDialog.cancel')}</Button>
               <Button type="submit" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save
+                {t('inventory.itemDialog.save')}
               </Button>
             </DialogFooter>
           </form>

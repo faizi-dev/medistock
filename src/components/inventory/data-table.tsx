@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -41,6 +42,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 import { PlusCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { useLanguage } from '@/context/language-context';
 
 export function InventoryDataTable() {
   const [items, setItems] = useState<MedicalItem[]>([]);
@@ -54,6 +56,7 @@ export function InventoryDataTable() {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<MedicalItem | null>(null);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   useEffect(() => {
     const itemsQuery = query(collection(db, 'items'));
@@ -101,7 +104,7 @@ export function InventoryDataTable() {
     }
   };
 
-  const columns = useMemo(() => getColumns(vehicles, handleEdit, handleDelete), [vehicles]);
+  const columns = useMemo(() => getColumns(vehicles, handleEdit, handleDelete, t), [vehicles, t]);
 
   const table = useReactTable({
     data: items,
@@ -123,7 +126,7 @@ export function InventoryDataTable() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Input
-            placeholder="Filter items..."
+            placeholder={t('inventory.filterPlaceholder')}
             value={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
             onChange={(event) =>
               table.getColumn('name')?.setFilterValue(event.target.value)
@@ -135,10 +138,10 @@ export function InventoryDataTable() {
             onValueChange={(value) => table.getColumn('vehicleId')?.setFilterValue(value === 'all' ? '' : value)}
           >
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by vehicle" />
+              <SelectValue placeholder={t('inventory.filterByVehicle')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Vehicles</SelectItem>
+              <SelectItem value="all">{t('inventory.allVehicles')}</SelectItem>
               {vehicles.map((v) => (
                 <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
               ))}
@@ -147,7 +150,7 @@ export function InventoryDataTable() {
         </div>
         <Button onClick={handleAddNew}>
           <PlusCircle className="mr-2 h-4 w-4" />
-          Add Item
+          {t('inventory.addItem')}
         </Button>
       </div>
       <div className="rounded-md border">
@@ -190,7 +193,7 @@ export function InventoryDataTable() {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No items found.
+                  {t('inventory.noItems')}
                 </TableCell>
               </TableRow>
             )}
@@ -204,7 +207,7 @@ export function InventoryDataTable() {
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
         >
-          Previous
+          {t('inventory.previous')}
         </Button>
         <Button
           variant="outline"
@@ -212,7 +215,7 @@ export function InventoryDataTable() {
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
         >
-          Next
+          {t('inventory.next')}
         </Button>
       </div>
       <ItemDialog
@@ -224,16 +227,15 @@ export function InventoryDataTable() {
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>{t('inventory.deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the item
-              "{itemToDelete?.name}" from the inventory.
+              {t('inventory.deleteDialog.description').replace('{itemName}', itemToDelete?.name || '')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('inventory.deleteDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
-              Delete
+              {t('inventory.deleteDialog.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
