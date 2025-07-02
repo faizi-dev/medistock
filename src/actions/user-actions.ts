@@ -55,7 +55,7 @@ export async function createUser(prevState: any, formData: FormData) {
     let message = 'An unexpected error occurred. Please check the server logs for more details.';
 
     if (error.message && (error.message.includes('Error fetching access token') || error.message.includes('Credential implementation provided to initializeApp()'))) {
-        message = 'Could not authenticate with Firebase. This is likely a server configuration issue. Please ensure the service account for your App Hosting backend has the "Service Account Token Creator" IAM role in your Google Cloud project.';
+        message = 'Could not authenticate with Firebase. This is a server configuration issue, not an application code bug. The service account for your App Hosting backend is missing a required permission. Please go to the Google Cloud Console for your project, find the service account used by App Hosting, and add the "Service Account Token Creator" IAM role to it.';
     } else {
         switch (error.code) {
             case 'auth/email-already-exists':
