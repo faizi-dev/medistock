@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -91,8 +90,8 @@ export default function DashboardPage() {
         <StatsCard isLoading={loading} title={t('dashboard.lowStock')} value={lowStockItems} icon={AlertTriangle} description={t('dashboard.lowStockDesc')} />
         <StatsCard isLoading={loading} title={t('dashboard.expiringSoon')} value={expiringSoonItems} icon={Bell} description={t('dashboard.expiringSoonDesc')} />
       </div>
-      <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
+      <div className="mt-8 grid gap-4">
+        <Card className="col-span-full">
           <CardHeader>
             <CardTitle>{t('dashboard.inventoryByVehicle')}</CardTitle>
           </CardHeader>
@@ -114,22 +113,6 @@ export default function DashboardPage() {
               </BarChart>
             </ResponsiveContainer>
             }
-          </CardContent>
-        </Card>
-        <Card className="col-span-4 lg:col-span-3">
-          <CardHeader>
-            <CardTitle>{t('dashboard.recentActivity')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            ) : (
-              <p className="text-muted-foreground">{t('dashboard.noRecentActivity')}</p>
-            )}
           </CardContent>
         </Card>
       </div>
