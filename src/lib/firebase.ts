@@ -11,6 +11,13 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+  throw new Error(
+    'Firebase configuration is missing. Please make sure you have a .env file with your Firebase project credentials, and that they are prefixed with NEXT_PUBLIC_.'
+  );
+}
+
+
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
