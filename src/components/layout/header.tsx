@@ -19,6 +19,7 @@ import {
   Sheet,
   SheetContent,
   SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Logo } from './logo';
@@ -50,6 +51,7 @@ export function Header() {
         <SheetContent side="left" className="sm:max-w-xs">
           <SheetHeader>
             <Logo />
+            <SheetTitle className="sr-only">Menu</SheetTitle>
           </SheetHeader>
           <nav className="mt-8 grid gap-2 text-lg font-medium">
             {navItems.map((item) => {
