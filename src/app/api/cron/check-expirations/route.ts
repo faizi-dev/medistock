@@ -96,7 +96,6 @@ async function sendExpirationEmail(adminEmails: string[], items: MedicalItem[], 
   const transporter = nodemailer.createTransport({
     host: SMTP_HOST,
     port: parseInt(SMTP_PORT, 10),
-    secure: parseInt(SMTP_PORT, 10) === 465,
     auth: {
       user: SMTP_USER,
       pass: SMTP_PASS,
