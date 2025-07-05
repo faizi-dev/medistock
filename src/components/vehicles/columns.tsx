@@ -2,7 +2,7 @@
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal, ArrowUpDown } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -73,31 +73,47 @@ export const getColumns = (
     cell: ({ row }) => {
       const vehicle = row.original;
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{t('vehicles.columns.actions')}</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => onEdit(vehicle)}>
-              {t('vehicles.actions.edit')}
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href={`/vehicles/${vehicle.id}`}>{t('vehicles.actions.viewInventory')}</Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => onDelete(vehicle)}
-            >
-              {t('vehicles.actions.delete')}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="text-right">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>{t('vehicles.columns.actions')}</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => onEdit(vehicle)}>
+                {t('vehicles.actions.edit')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => onDelete(vehicle)}
+              >
+                {t('vehicles.actions.delete')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       );
     },
   },
+  {
+    id: 'inventory',
+    header: () => <div className="text-center">{t('vehicles.actions.viewInventory')}</div>,
+    cell: ({ row }) => {
+        const vehicle = row.original;
+        return (
+            <div className="text-center">
+                <Button asChild variant="outline" size="sm">
+                    <Link href={`/vehicles/${vehicle.id}`}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        {t('vehicles.actions.viewInventory')}
+                    </Link>
+                </Button>
+            </div>
+        );
+    }
+  }
 ];
