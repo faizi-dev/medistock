@@ -10,7 +10,6 @@ export default function InventoryPage() {
     <>
       <PageHeader
         title={t('inventory.title')}
-        description={t('inventory.description')}
       />
       <InventoryDataTable />
     </>

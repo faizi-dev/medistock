@@ -84,10 +84,6 @@ export function InventoryDataTable() {
   const caseMap = useMemo(() => new Map(cases.map(c => [c.id, c])), [cases]);
   const moduleBagMap = useMemo(() => new Map(moduleBags.map(m => [m.id, m])), [moduleBags]);
 
-  const handleAddNew = () => {
-    toast({ variant: 'destructive', title: 'Cannot Add Item Here', description: 'Please add items from within a module bag on the vehicle details page.' });
-  };
-
   const handleEdit = (item: MedicalItem) => {
     setSelectedItem(item);
     setIsDialogOpen(true);
@@ -158,10 +154,6 @@ export function InventoryDataTable() {
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={handleAddNew}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          {t('inventory.addItem')}
-        </Button>
       </div>
       <div className="rounded-md border">
         <Table>
