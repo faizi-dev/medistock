@@ -17,12 +17,10 @@ import type { MedicalItem } from '@/types';
 import type { TranslationKey } from '@/lib/translations';
 import { format } from 'date-fns';
 
-const getStatus = (item: MedicalItem, t: (key: TranslationKey) => string): { key: 'inStock' | 'lowStock' | 'expiringSoon' | 'expired'; text: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' } => {
+const getStatus = (item: MedicalItem, t: (key: TranslationKey) => string): { key: 'understocked' | 'overstocked' | 'fullyStocked' | 'expiringSoon' | 'expired'; text: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' } => {
+  // Time-based statuses have priority
   if (item.expirationDate && item.expirationDate.toDate() < new Date()) {
     return { key: 'expired', text: t('inventory.status.expired'), variant: 'destructive' };
-  }
-  if (item.quantity <= item.lowStockThreshold) {
-    return { key: 'lowStock', text: t('inventory.status.lowStock'), variant: 'destructive' };
   }
   if (item.expirationDate) {
     const fortyTwoDaysFromNow = new Date();
@@ -31,7 +29,15 @@ const getStatus = (item: MedicalItem, t: (key: TranslationKey) => string): { key
       return { key: 'expiringSoon', text: t('inventory.status.expiringSoon'), variant: 'outline' };
     }
   }
-  return { key: 'inStock', text: t('inventory.status.inStock'), variant: 'secondary' };
+
+  // Quantity-based statuses
+  if (item.quantity < item.targetQuantity) {
+    return { key: 'understocked', text: t('inventory.status.understocked'), variant: 'destructive' };
+  }
+  if (item.quantity > item.targetQuantity) {
+    return { key: 'overstocked', text: t('inventory.status.overstocked'), variant: 'outline' };
+  }
+  return { key: 'fullyStocked', text: t('inventory.status.fullyStocked'), variant: 'secondary' };
 };
 
 
@@ -81,7 +87,21 @@ export const getColumns = (
         </Button>
       );
     },
-    cell: ({ row }) => <div className="text-center">{row.getValue('quantity')}</div>,
+    cell: ({ row }) => {
+      const item = row.original;
+      const discrepancy = item.quantity - item.targetQuantity;
+      const discrepancyText = discrepancy > 0 ? `+${discrepancy}` : `${discrepancy}`;
+      const discrepancyColor = discrepancy < 0 ? 'text-destructive' : discrepancy > 0 ? 'text-blue-600' : 'text-muted-foreground';
+
+      return (
+        <div className="text-center">
+            <p className="font-medium">{item.quantity}</p>
+            <p className={`text-xs ${discrepancyColor}`}>
+              Target: {item.targetQuantity} ({discrepancyText})
+            </p>
+        </div>
+      );
+    },
   },
   {
     accessorKey: 'expirationDate',
@@ -110,7 +130,8 @@ export const getColumns = (
     },
     filterFn: (row, id, value) => {
       if (!value || value === 'all') return true;
-      return getStatus(row.original, t).key === value;
+      const statusKey = getStatus(row.original, t).key;
+      return value.includes(statusKey);
     },
   },
   {

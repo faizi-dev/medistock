@@ -5,9 +5,9 @@ export interface MedicalItem {
   name: string;
   barcode: string;
   quantity: number;
+  targetQuantity: number;
   expirationDate: Timestamp | null;
   vehicleId: string;
-  lowStockThreshold: number;
   createdAt: Timestamp;
   createdBy: { uid: string; name: string; };
   updatedAt?: Timestamp;

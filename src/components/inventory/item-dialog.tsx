@@ -49,7 +49,7 @@ const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   barcode: z.string().optional(),
   quantity: z.coerce.number().int().min(0, 'Quantity must be non-negative'),
-  lowStockThreshold: z.coerce.number().int().min(0, 'Threshold must be non-negative'),
+  targetQuantity: z.coerce.number().int().min(0, 'Target quantity must be non-negative'),
   expirationDate: z.date().optional(),
   vehicleId: z.string().min(1, 'Vehicle assignment is required'),
 });
@@ -97,7 +97,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
           name: '',
           barcode: '',
           quantity: 0,
-          lowStockThreshold: 10,
+          targetQuantity: 100,
           vehicleId: '',
         },
   });
@@ -133,7 +133,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
           name: '',
           barcode: '',
           quantity: 0,
-          lowStockThreshold: 10,
+          targetQuantity: 100,
           vehicleId: '',
           expirationDate: undefined,
         });
@@ -146,7 +146,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
         const existingItem = allItems.find(i => i.barcode === barcodeValue);
         if (existingItem) {
             form.setValue("name", existingItem.name, { shouldValidate: true });
-            form.setValue("lowStockThreshold", existingItem.lowStockThreshold, { shouldValidate: true });
+            form.setValue("targetQuantity", existingItem.targetQuantity, { shouldValidate: true });
             toast({
                 title: 'Item Recognized',
                 description: `Details for '${existingItem.name}' have been pre-filled.`
@@ -300,10 +300,10 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
               />
               <FormField
                 control={form.control}
-                name="lowStockThreshold"
+                name="targetQuantity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('inventory.itemDialog.lowStockLabel')}</FormLabel>
+                    <FormLabel>{t('inventory.itemDialog.targetQuantityLabel')}</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>

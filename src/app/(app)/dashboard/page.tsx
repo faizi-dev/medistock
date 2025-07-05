@@ -37,7 +37,7 @@ export default function DashboardPage() {
     };
   }, []);
 
-  const lowStockItems = items.filter(item => item.quantity <= item.lowStockThreshold).length;
+  const understockedItems = items.filter(item => item.quantity < item.targetQuantity).length;
   const expiringSoonItems = items.filter(item => {
     if (!item.expirationDate) return false;
     const fortyTwoDaysFromNow = new Date();
@@ -87,7 +87,7 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard isLoading={loading} title={t('dashboard.totalVehicles')} value={vehicles.length} icon={Truck} description={t('dashboard.totalVehiclesDesc')} />
         <StatsCard isLoading={loading} title={t('dashboard.totalItems')} value={totalItems} icon={Boxes} description={t('dashboard.totalItemsDesc')} />
-        <StatsCard isLoading={loading} title={t('dashboard.lowStock')} value={lowStockItems} icon={AlertTriangle} description={t('dashboard.lowStockDesc')} />
+        <StatsCard isLoading={loading} title={t('dashboard.understocked')} value={understockedItems} icon={AlertTriangle} description={t('dashboard.understockedDesc')} />
         <StatsCard isLoading={loading} title={t('dashboard.expiringSoon')} value={expiringSoonItems} icon={Bell} description={t('dashboard.expiringSoonDesc')} />
       </div>
       <div className="mt-8 grid gap-4">
