@@ -36,8 +36,10 @@ const generateHtmlShell = (title: string, content: string, t: (key: TranslationK
         .overstocked { color: #007bff; }
         .footer { text-align: center; margin-top: 2rem; font-size: 0.8rem; color: #6c757d; }
         .button-container { position: fixed; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 100; }
-        .report-button { padding: 10px 20px; background-color: #2071a8; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .report-button:disabled { background-color: #999; cursor: not-allowed; }
+        .report-button { display: inline-flex; align-items: center; justify-content: center; padding: 10px 20px; background-color: #2071a8; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .report-button:disabled { background-color: #999; cursor: not-allowed; opacity: 0.7; }
+        .loader { width: 1rem; height: 1rem; border: 2px solid #fff; border-bottom-color: transparent; border-radius: 50%; display: inline-block; vertical-align: middle; box-sizing: border-box; animation: rotation 1s linear infinite; margin-right: 0.5rem; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @media print {
           .button-container { display: none; }
           body { padding: 0; }
@@ -57,29 +59,24 @@ const generateHtmlShell = (title: string, content: string, t: (key: TranslationK
       <script>
         function downloadPDF() {
           const report = document.getElementById('report-content');
-          const buttons = document.querySelector('.button-container');
+          const downloadBtn = document.getElementById('download-pdf-btn');
           
-          if (!report) {
-            console.error('Report content element not found.');
+          if (!report || !downloadBtn) {
+            console.error('Report content element or download button not found.');
             return;
           }
-           if (typeof window.html2canvas === 'undefined') {
-            alert("Could not find the html2canvas library. It might be blocked by your browser's ad-blocker or failed to load. Please check the console and try again.");
-            return;
-          }
-          if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
-            alert("Could not find the jsPDF library. It might be blocked by your browser's ad-blocker or failed to load. Please check the console and try again.");
+           if (typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
+            alert("Could not find required libraries. They might be blocked by your ad-blocker or failed to load. Please check the console and try again.");
             return;
           }
 
-
-          if (buttons) buttons.style.display = 'none';
+          const originalButtonText = downloadBtn.innerHTML;
+          downloadBtn.disabled = true;
+          downloadBtn.innerHTML = \`<span class="loader"></span> ${t('report.downloading')}\`;
 
           const { jsPDF } = window.jspdf;
           
           window.html2canvas(report, { scale: 2, useCORS: true }).then(canvas => {
-            if (buttons) buttons.style.display = 'flex';
-            
             try {
               const imgData = canvas.toDataURL('image/png');
               const pdf = new jsPDF({
@@ -95,28 +92,26 @@ const generateHtmlShell = (title: string, content: string, t: (key: TranslationK
               pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
               pdf.save('${safeTitle}.pdf');
             } catch (e) {
-              if (buttons) buttons.style.display = 'flex';
               console.error("Could not generate PDF from canvas:", e);
               alert("Sorry, there was an error generating the PDF.");
             }
           }).catch((err) => {
-            if (buttons) buttons.style.display = 'flex';
             console.error("html2canvas failed:", err);
             alert("Sorry, there was an error capturing the page content for the PDF.");
+          }).finally(() => {
+            downloadBtn.disabled = false;
+            downloadBtn.innerHTML = originalButtonText;
           });
         }
 
         function initializePdfDownloader() {
           const downloadBtn = document.getElementById('download-pdf-btn');
           
-          // Check if libraries are loaded.
           if (typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
-            // If not, try again in 100ms.
             setTimeout(initializePdfDownloader, 100);
             return;
           }
 
-          // If we're here, libraries are loaded.
           if (downloadBtn) {
             downloadBtn.disabled = false;
             downloadBtn.textContent = '${t('report.download')}';
@@ -124,7 +119,6 @@ const generateHtmlShell = (title: string, content: string, t: (key: TranslationK
           }
         }
         
-        // Start the initialization process when the DOM is ready.
         document.addEventListener('DOMContentLoaded', () => {
              const downloadBtn = document.getElementById('download-pdf-btn');
              if(downloadBtn) downloadBtn.textContent = 'Loading...';
