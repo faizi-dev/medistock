@@ -91,6 +91,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
     defaultValues: item
       ? {
           ...item,
+          barcode: item.barcode || '',
           expirationDate: item.expirationDate?.toDate(),
         }
       : {
@@ -126,6 +127,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
       if (item) {
         form.reset({
           ...item,
+          barcode: item.barcode || '',
           expirationDate: item.expirationDate?.toDate(),
         });
       } else {

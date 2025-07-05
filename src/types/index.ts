@@ -3,7 +3,7 @@ import type { Timestamp } from 'firebase/firestore';
 export interface MedicalItem {
   id: string;
   name: string;
-  barcode: string;
+  barcode?: string;
   quantity: number;
   targetQuantity: number;
   expirationDate: Timestamp | null;
