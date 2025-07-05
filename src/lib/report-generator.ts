@@ -6,6 +6,7 @@ import type { TranslationKey } from './translations';
 type ReportType = 'full' | 'restock' | 'expiring';
 
 const generateHtmlShell = (title: string, content: string, t: (key: TranslationKey) => string) => {
+    const safeTitle = title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -13,6 +14,8 @@ const generateHtmlShell = (title: string, content: string, t: (key: TranslationK
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>${title}</title>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoVBL5gI9kLhgKHCCL0mTTMYDJsP9A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYM6ucIFoTjslZ0H2A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 2rem; background-color: #f8f9fa; color: #333; }
         .container { max-width: 1200px; margin: 0 auto; background-color: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -32,17 +35,45 @@ const generateHtmlShell = (title: string, content: string, t: (key: TranslationK
         .understocked { color: #dc3545; font-weight: bold; }
         .overstocked { color: #007bff; }
         .footer { text-align: center; margin-top: 2rem; font-size: 0.8rem; color: #6c757d; }
-        .print-button { position: fixed; top: 20px; right: 20px; padding: 10px 20px; background-color: #2071a8; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .button-container { position: fixed; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 100; }
+        .report-button { padding: 10px 20px; background-color: #2071a8; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         @media print {
-          .print-button { display: none; }
+          .button-container { display: none; }
           body { padding: 0; }
           .container { box-shadow: none; border-radius: 0; padding: 1rem; }
         }
       </style>
+      <script>
+        function downloadPDF() {
+          const { jsPDF } = window.jspdf;
+          const report = document.getElementById('report-content');
+          const buttons = document.querySelector('.button-container');
+          if (buttons) buttons.style.display = 'none';
+
+          html2canvas(report, { scale: 2 }).then(canvas => {
+            if (buttons) buttons.style.display = 'flex';
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({
+              orientation: 'p',
+              unit: 'px',
+              format: [canvas.width, canvas.height]
+            });
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+            pdf.save('${safeTitle}.pdf');
+          }).catch((err) => {
+            if (buttons) buttons.style.display = 'flex';
+            console.error("Could not generate PDF:", err);
+            alert("Sorry, there was an error generating the PDF.");
+          });
+        }
+      </script>
     </head>
     <body>
-      <button class="print-button" onclick="window.print()">${t('report.printOrDownload')}</button>
-      <div class="container">
+      <div class="button-container">
+        <button class="report-button" onclick="window.print()">${t('report.print')}</button>
+        <button class="report-button" onclick="downloadPDF()">${t('report.download')}</button>
+      </div>
+      <div class="container" id="report-content">
         ${content}
         <div class="footer">MediStock Inventory Management System</div>
       </div>
