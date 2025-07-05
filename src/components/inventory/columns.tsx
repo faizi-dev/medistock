@@ -184,11 +184,6 @@ export const getColumns = (
     },
   },
   {
-    accessorKey: 'createdBy',
-    header: t('inventory.columns.addedBy'),
-    cell: ({ row }) => row.original.createdBy?.name || 'N/A',
-  },
-  {
     accessorKey: 'createdAt',
     header: ({ column }) => {
       return (
@@ -196,14 +191,21 @@ export const getColumns = (
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
-          {t('inventory.columns.addedAt')}
+          {t('inventory.columns.added')}
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
     },
     cell: ({ row }) => {
-      const date = row.original.createdAt?.toDate();
-      return date ? format(date, 'MMM d, yyyy') : 'N/A';
+      const { createdBy, createdAt } = row.original;
+      const date = createdAt?.toDate();
+      const formattedDate = date ? format(date, 'MMM d, yyyy') : 'N/A';
+      return (
+        <div>
+          <div>{createdBy?.name || 'N/A'}</div>
+          <div className="text-sm text-muted-foreground">{formattedDate}</div>
+        </div>
+      );
     },
   },
   {
