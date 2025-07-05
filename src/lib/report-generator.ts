@@ -45,26 +45,39 @@ const generateHtmlShell = (title: string, content: string, t: (key: TranslationK
       </style>
       <script>
         function downloadPDF() {
-          try {
-            const { jsPDF } = window.jspdf;
-            const report = document.getElementById('report-content');
-            const buttons = document.querySelector('.button-container');
+          const report = document.getElementById('report-content');
+          const buttons = document.querySelector('.button-container');
 
-            if (!report) {
-              alert('Error: Could not find report content to download.');
-              console.error('Report content element with id "report-content" not found.');
-              return;
+          if (!report) {
+            alert('Error: Could not find report content.');
+            console.error('Report content element with id "report-content" not found.');
+            return;
+          }
+
+          if (typeof window.html2canvas === 'undefined') {
+            alert("Could not find the html2canvas library. It might be blocked by your browser's ad-blocker or failed to load. Please check the console and try again.");
+            console.error('html2canvas library not found on window object.');
+            return;
+          }
+          
+          if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
+            alert("Could not find the jsPDF library. It might be blocked by your browser's ad-blocker or failed to load. Please check the console and try again.");
+            console.error('jsPDF library not found on window object.');
+            return;
+          }
+
+          if (buttons) {
+            buttons.style.display = 'none';
+          }
+          
+          const jsPDF = window.jspdf.jsPDF;
+
+          window.html2canvas(report, { scale: 2, useCORS: true }).then(canvas => {
+            if (buttons) {
+              buttons.style.display = 'flex';
             }
             
-            if (buttons) {
-              buttons.style.display = 'none';
-            }
-
-            html2canvas(report, { scale: 2, useCORS: true }).then(canvas => {
-              if (buttons) {
-                buttons.style.display = 'flex';
-              }
-              
+            try {
               const imgData = canvas.toDataURL('image/png');
               const pdf = new jsPDF({
                 orientation: 'portrait',
@@ -78,22 +91,20 @@ const generateHtmlShell = (title: string, content: string, t: (key: TranslationK
               
               pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
               pdf.save('${safeTitle}.pdf');
-
-            }).catch((err) => {
-              if (buttons) {
+            } catch (e) {
+               if (buttons) {
                 buttons.style.display = 'flex';
               }
-              console.error("Could not generate PDF:", err);
+              console.error("Could not generate PDF from canvas:", e);
               alert("Sorry, there was an error generating the PDF. Please check the browser console for more details.");
-            });
-          } catch (e) {
-              console.error('An error occurred in the downloadPDF function:', e);
-              alert('An unexpected error occurred while trying to download the PDF. Please check the browser console.');
-              const buttons = document.querySelector('.button-container');
-              if (buttons) {
-                buttons.style.display = 'flex';
-              }
-          }
+            }
+          }).catch((err) => {
+            if (buttons) {
+              buttons.style.display = 'flex';
+            }
+            console.error("html2canvas failed:", err);
+            alert("Sorry, there was an error capturing the page content for the PDF. Please check the browser console for more details.");
+          });
         }
       </script>
     </head>
