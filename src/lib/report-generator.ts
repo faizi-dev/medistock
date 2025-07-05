@@ -14,8 +14,8 @@ const generateHtmlShell = (title: string, content: string, t: (key: TranslationK
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>${title}</title>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoVBL5gI9kLhgKHCCL0mTTMYDJsP9A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYM6ucIFoTjslZ0H2A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 2rem; background-color: #f8f9fa; color: #333; }
         .container { max-width: 1200px; margin: 0 auto; background-color: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -63,6 +63,15 @@ const generateHtmlShell = (title: string, content: string, t: (key: TranslationK
             console.error('Report content element not found.');
             return;
           }
+           if (typeof window.html2canvas === 'undefined') {
+            alert("Could not find the html2canvas library. It might be blocked by your browser's ad-blocker or failed to load. Please check the console and try again.");
+            return;
+          }
+          if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
+            alert("Could not find the jsPDF library. It might be blocked by your browser's ad-blocker or failed to load. Please check the console and try again.");
+            return;
+          }
+
 
           if (buttons) buttons.style.display = 'none';
 
@@ -101,7 +110,7 @@ const generateHtmlShell = (title: string, content: string, t: (key: TranslationK
           const downloadBtn = document.getElementById('download-pdf-btn');
           
           // Check if libraries are loaded.
-          if (typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+          if (typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
             // If not, try again in 100ms.
             setTimeout(initializePdfDownloader, 100);
             return;
