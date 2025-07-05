@@ -17,27 +17,48 @@ import type { MedicalItem } from '@/types';
 import type { TranslationKey } from '@/lib/translations';
 import { format } from 'date-fns';
 
-const getStatus = (item: MedicalItem, t: (key: TranslationKey) => string): { key: 'understocked' | 'overstocked' | 'fullyStocked' | 'expiringSoon' | 'expired'; text: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' } => {
-  // Time-based statuses have priority
+type Status = {
+  key: 'understocked' | 'overstocked' | 'fullyStocked' | 'expiringSoon' | 'expired';
+  text: string;
+  variant: 'default' | 'secondary' | 'destructive' | 'outline';
+};
+
+const getStatuses = (item: MedicalItem, t: (key: TranslationKey) => string): Status[] => {
+  const statuses: Status[] = [];
+
+  // Highest priority: Expired. If an item is expired, that is the only status we show.
   if (item.expirationDate && item.expirationDate.toDate() < new Date()) {
-    return { key: 'expired', text: t('inventory.status.expired'), variant: 'destructive' };
+    return [{ key: 'expired', text: t('inventory.status.expired'), variant: 'destructive' }];
   }
+
+  // Check for other statuses that can be combined.
+  
+  // Expiration status
   if (item.expirationDate) {
     const fortyTwoDaysFromNow = new Date();
     fortyTwoDaysFromNow.setDate(fortyTwoDaysFromNow.getDate() + 42);
     if (item.expirationDate.toDate() < fortyTwoDaysFromNow) {
-      return { key: 'expiringSoon', text: t('inventory.status.expiringSoon'), variant: 'outline' };
+      statuses.push({ key: 'expiringSoon', text: t('inventory.status.expiringSoon'), variant: 'outline' });
     }
   }
 
-  // Quantity-based statuses
+  // Quantity status
   if (item.quantity < item.targetQuantity) {
-    return { key: 'understocked', text: t('inventory.status.understocked'), variant: 'destructive' };
+    statuses.push({ key: 'understocked', text: t('inventory.status.understocked'), variant: 'destructive' });
+  } else if (item.quantity > item.targetQuantity) {
+    statuses.push({ key: 'overstocked', text: t('inventory.status.overstocked'), variant: 'outline' });
+  } else {
+    // If an item is neither understocked nor overstocked, it is fully stocked.
+    statuses.push({ key: 'fullyStocked', text: t('inventory.status.fullyStocked'), variant: 'secondary' });
   }
-  if (item.quantity > item.targetQuantity) {
-    return { key: 'overstocked', text: t('inventory.status.overstocked'), variant: 'outline' };
+  
+  // If an item is 'fullyStocked' but has a more critical status like 'expiringSoon',
+  // we filter out 'fullyStocked' to avoid confusion.
+  if (statuses.length > 1) {
+    return statuses.filter(status => status.key !== 'fullyStocked');
   }
-  return { key: 'fullyStocked', text: t('inventory.status.fullyStocked'), variant: 'secondary' };
+
+  return statuses;
 };
 
 
@@ -126,13 +147,23 @@ export const getColumns = (
     id: 'status',
     header: t('inventory.columns.status'),
     cell: ({ row }) => {
-      const status = getStatus(row.original, t);
-      return <Badge variant={status.variant}>{status.text}</Badge>;
+      const statuses = getStatuses(row.original, t);
+      if (!statuses.length) return null;
+
+      return (
+        <div className="flex flex-wrap gap-1">
+          {statuses.map((status) => (
+            <Badge key={status.key} variant={status.variant}>
+              {status.text}
+            </Badge>
+          ))}
+        </div>
+      );
     },
     filterFn: (row, id, value) => {
       if (!value) return true;
-      const statusKey = getStatus(row.original, t).key;
-      return statusKey === value;
+      const statusKeys = getStatuses(row.original, t).map((s) => s.key);
+      return statusKeys.includes(value as any);
     },
   },
   {
