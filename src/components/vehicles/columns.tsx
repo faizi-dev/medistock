@@ -82,11 +82,11 @@ export const getColumns = (
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>{t('vehicles.columns.actions')}</DropdownMenuLabel>
-            <DropdownMenuItem asChild>
-              <Link href={`/vehicles/${vehicle.id}`}>{t('vehicles.actions.viewInventory')}</Link>
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onEdit(vehicle)}>
               {t('vehicles.actions.edit')}
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/vehicles/${vehicle.id}`}>{t('vehicles.actions.viewInventory')}</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
