@@ -186,7 +186,7 @@ export default function VehicleInventoryPage() {
     <>
       <PageHeader
         title={vehicle?.name || 'Loading Vehicle...'}
-        description={t('vehicles.inventory.description')}
+        description={t('vehicles.manageInventory.description')}
       >
         <Button onClick={() => {
           setDialogState({ type: 'case', data: null });

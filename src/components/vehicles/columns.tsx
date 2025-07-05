@@ -69,6 +69,23 @@ export const getColumns = (
     },
   },
   {
+    id: 'inventory',
+    header: () => <div className="text-center">{t('vehicles.actions.manageInventory')}</div>,
+    cell: ({ row }) => {
+        const vehicle = row.original;
+        return (
+            <div className="text-center">
+                <Button asChild variant="outline" size="sm">
+                    <Link href={`/vehicles/${vehicle.id}`}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        {t('vehicles.actions.manageInventory')}
+                    </Link>
+                </Button>
+            </div>
+        );
+    }
+  },
+  {
     id: 'actions',
     cell: ({ row }) => {
       const vehicle = row.original;
@@ -99,21 +116,4 @@ export const getColumns = (
       );
     },
   },
-  {
-    id: 'inventory',
-    header: () => <div className="text-center">{t('vehicles.actions.viewInventory')}</div>,
-    cell: ({ row }) => {
-        const vehicle = row.original;
-        return (
-            <div className="text-center">
-                <Button asChild variant="outline" size="sm">
-                    <Link href={`/vehicles/${vehicle.id}`}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        {t('vehicles.actions.viewInventory')}
-                    </Link>
-                </Button>
-            </div>
-        );
-    }
-  }
 ];
