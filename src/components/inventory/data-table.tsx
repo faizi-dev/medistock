@@ -40,9 +40,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
-import { PlusCircle } from 'lucide-react';
+import { FileDown, PlusCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useLanguage } from '@/context/language-context';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { generateReportHtml } from '@/lib/report-generator';
 
 export function InventoryDataTable() {
   const [items, setItems] = useState<MedicalItem[]>([]);
@@ -107,6 +114,22 @@ export function InventoryDataTable() {
       }
     }
   };
+  
+  const handleGenerateReport = (reportType: 'full' | 'restock' | 'expiring') => {
+    const html = generateReportHtml(items, vehicles, cases, moduleBags, reportType, t);
+    const reportWindow = window.open('', '_blank');
+    if (reportWindow) {
+        reportWindow.document.write(html);
+        reportWindow.document.close();
+        reportWindow.focus();
+    } else {
+        toast({
+            variant: 'destructive',
+            title: 'Could not open report',
+            description: 'Please disable your pop-up blocker for this site and try again.'
+        })
+    }
+  };
 
   const columns = useMemo(() => getColumns(vehicleMap, caseMap, moduleBagMap, handleEdit, handleDelete, t), [vehicleMap, caseMap, moduleBagMap, t]);
 
@@ -154,6 +177,25 @@ export function InventoryDataTable() {
             </SelectContent>
           </Select>
         </div>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                    <FileDown className="mr-2 h-4 w-4" />
+                    {t('inventory.generateReport')}
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleGenerateReport('full')}>
+                    {t('inventory.reports.full')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleGenerateReport('restock')}>
+                    {t('inventory.reports.restock')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleGenerateReport('expiring')}>
+                    {t('inventory.reports.expiring')}
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       <div className="rounded-md border">
         <Table>
