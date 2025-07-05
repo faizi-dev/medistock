@@ -2,7 +2,7 @@
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal, ArrowUpDown } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Truck, Box, Package, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -84,15 +84,33 @@ export const getColumns = (
     cell: ({ row }) => {
       const moduleId = row.getValue('location') as string;
       const moduleBag = moduleBagMap.get(moduleId);
-      if (!moduleBag) return t('inventory.columns.unassigned');
+      if (!moduleBag) {
+        return <span className="text-muted-foreground">{t('inventory.columns.unassigned')}</span>;
+      }
 
       const caseItem = caseMap.get(moduleBag.caseId);
-      if (!caseItem) return moduleBag.name;
+      const vehicle = caseItem ? vehicleMap.get(caseItem.vehicleId) : null;
 
-      const vehicle = vehicleMap.get(caseItem.vehicleId);
-      if (!vehicle) return `${caseItem.name} > ${moduleBag.name}`;
-      
-      return `${vehicle.name} > ${caseItem.name} > ${moduleBag.name}`;
+      return (
+        <div className="flex items-center gap-1.5 whitespace-nowrap">
+          {vehicle && (
+            <>
+              <Truck className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">{vehicle.name}</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </>
+          )}
+          {caseItem && (
+            <>
+              <Box className="h-4 w-4 text-muted-foreground" />
+              <span>{caseItem.name}</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </>
+          )}
+          <Package className="h-4 w-4 text-muted-foreground" />
+          <span>{moduleBag.name}</span>
+        </div>
+      );
     },
   },
   {
