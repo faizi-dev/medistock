@@ -134,8 +134,8 @@ export function InventoryDataTable() {
             className="max-w-sm"
           />
           <Select
-            value={(table.getColumn('vehicleId')?.getFilterValue() as string) ?? ''}
-            onValueChange={(value) => table.getColumn('vehicleId')?.setFilterValue(value === 'all' ? '' : value)}
+            value={(table.getColumn('vehicleId')?.getFilterValue() as string) ?? 'all'}
+            onValueChange={(value) => table.getColumn('vehicleId')?.setFilterValue(value === 'all' ? null : value)}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder={t('inventory.filterByVehicle')} />
@@ -148,7 +148,7 @@ export function InventoryDataTable() {
             </SelectContent>
           </Select>
           <Select
-            value={(table.getColumn('status')?.getFilterValue() as string[]) ?? []}
+            value={(table.getColumn('status')?.getFilterValue() as string) ?? 'all'}
             onValueChange={(value) => table.getColumn('status')?.setFilterValue(value === 'all' ? null : value)}
           >
             <SelectTrigger className="w-[180px]">

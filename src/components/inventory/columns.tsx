@@ -71,7 +71,8 @@ export const getColumns = (
       return vehicle ? vehicle.name : t('inventory.columns.unassigned');
     },
     filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
+      if (!value) return true;
+      return row.getValue(id) === value;
     },
   },
   {
@@ -129,9 +130,9 @@ export const getColumns = (
       return <Badge variant={status.variant}>{status.text}</Badge>;
     },
     filterFn: (row, id, value) => {
-      if (!value || value === 'all') return true;
+      if (!value) return true;
       const statusKey = getStatus(row.original, t).key;
-      return value.includes(statusKey);
+      return statusKey === value;
     },
   },
   {
