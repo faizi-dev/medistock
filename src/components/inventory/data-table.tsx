@@ -13,7 +13,7 @@ import {
   SortingState,
   ColumnFiltersState,
 } from '@tanstack/react-table';
-import { collection, onSnapshot, query, doc, deleteDoc, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, query, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
   Table,
@@ -27,7 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ItemDialog } from './item-dialog';
 import { getColumns } from './columns';
-import type { MedicalItem, Vehicle } from '@/types';
+import type { MedicalItem, Vehicle, Case, ModuleBag } from '@/types';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +47,9 @@ import { useLanguage } from '@/context/language-context';
 export function InventoryDataTable() {
   const [items, setItems] = useState<MedicalItem[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [cases, setCases] = useState<Case[]>([]);
+  const [moduleBags, setModuleBags] = useState<ModuleBag[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MedicalItem | null>(null);
@@ -59,25 +62,30 @@ export function InventoryDataTable() {
   const { t } = useLanguage();
 
   useEffect(() => {
-    const itemsQuery = query(collection(db, 'items'));
-    const unsubscribeItems = onSnapshot(itemsQuery, (snapshot) => {
-      const itemsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MedicalItem));
-      setItems(itemsData);
-      setLoading(false);
-    });
-
-    const fetchVehicles = async () => {
-      const vehiclesSnapshot = await getDocs(collection(db, 'vehicles'));
-      setVehicles(vehiclesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Vehicle)));
-    };
-    fetchVehicles();
-    
-    return () => unsubscribeItems();
+    const unsubscribes = [
+      onSnapshot(query(collection(db, 'items')), snapshot => {
+        setItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MedicalItem)));
+        setLoading(false);
+      }),
+      onSnapshot(query(collection(db, 'vehicles')), snapshot => {
+        setVehicles(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Vehicle)));
+      }),
+      onSnapshot(query(collection(db, 'cases')), snapshot => {
+        setCases(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Case)));
+      }),
+      onSnapshot(query(collection(db, 'moduleBags')), snapshot => {
+        setModuleBags(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ModuleBag)));
+      }),
+    ];
+    return () => unsubscribes.forEach(unsub => unsub());
   }, []);
 
+  const vehicleMap = useMemo(() => new Map(vehicles.map(v => [v.id, v])), [vehicles]);
+  const caseMap = useMemo(() => new Map(cases.map(c => [c.id, c])), [cases]);
+  const moduleBagMap = useMemo(() => new Map(moduleBags.map(m => [m.id, m])), [moduleBags]);
+
   const handleAddNew = () => {
-    setSelectedItem(null);
-    setIsDialogOpen(true);
+    toast({ variant: 'destructive', title: 'Cannot Add Item Here', description: 'Please add items from within a module bag on the vehicle details page.' });
   };
 
   const handleEdit = (item: MedicalItem) => {
@@ -104,7 +112,7 @@ export function InventoryDataTable() {
     }
   };
 
-  const columns = useMemo(() => getColumns(vehicles, handleEdit, handleDelete, t), [vehicles, t]);
+  const columns = useMemo(() => getColumns(vehicleMap, caseMap, moduleBagMap, handleEdit, handleDelete, t), [vehicleMap, caseMap, moduleBagMap, t]);
 
   const table = useReactTable({
     data: items,
@@ -133,20 +141,6 @@ export function InventoryDataTable() {
             }
             className="max-w-sm"
           />
-          <Select
-            value={(table.getColumn('vehicleId')?.getFilterValue() as string) ?? 'all'}
-            onValueChange={(value) => table.getColumn('vehicleId')?.setFilterValue(value === 'all' ? null : value)}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder={t('inventory.filterByVehicle')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('inventory.allVehicles')}</SelectItem>
-              {vehicles.map((v) => (
-                <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Select
             value={(table.getColumn('status')?.getFilterValue() as string) ?? 'all'}
             onValueChange={(value) => table.getColumn('status')?.setFilterValue(value === 'all' ? null : value)}
@@ -189,7 +183,7 @@ export function InventoryDataTable() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
+              Array.from({ length: 10 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell colSpan={columns.length}>
                     <Skeleton className="h-8 w-full" />
@@ -238,6 +232,7 @@ export function InventoryDataTable() {
         isOpen={isDialogOpen}
         setIsOpen={setIsDialogOpen}
         item={selectedItem}
+        moduleId={selectedItem?.moduleId}
         onSuccess={() => { /* can add refresh logic here if needed */ }}
       />
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>

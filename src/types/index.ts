@@ -7,7 +7,7 @@ export interface MedicalItem {
   quantity: number;
   targetQuantity: number;
   expirationDate: Timestamp | null;
-  vehicleId: string;
+  moduleId: string;
   createdAt: Timestamp;
   createdBy: { uid: string; name: string; };
   updatedAt?: Timestamp;
@@ -21,6 +21,26 @@ export interface Vehicle {
   createdBy: { uid: string; name: string; };
   updatedAt?: Timestamp;
   updatedBy?: { uid: string; name: string; };
+}
+
+export interface Case {
+    id: string;
+    name: string;
+    vehicleId: string;
+    createdAt: Timestamp;
+    createdBy: { uid: string; name: string; };
+    updatedAt?: Timestamp;
+    updatedBy?: { uid: string; name: string; };
+}
+
+export interface ModuleBag {
+    id: string;
+    name: string;
+    caseId: string;
+    createdAt: Timestamp;
+    createdBy: { uid: string; name: string; };
+    updatedAt?: Timestamp;
+    updatedBy?: { uid: string; name: string; };
 }
 
 export interface UserProfile {

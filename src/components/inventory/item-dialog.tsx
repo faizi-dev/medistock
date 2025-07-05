@@ -26,19 +26,12 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, Loader2, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import type { MedicalItem, Vehicle } from '@/types';
+import type { MedicalItem } from '@/types';
 import { Timestamp } from 'firebase/firestore';
 import { useLanguage } from '@/context/language-context';
 import { useAuth } from '@/hooks/use-auth';
@@ -52,7 +45,7 @@ const formSchema = z.object({
   quantity: z.coerce.number().int().min(0, 'Quantity must be non-negative'),
   targetQuantity: z.coerce.number().int().min(0, 'Target quantity must be non-negative'),
   expirationDate: z.date().optional(),
-  vehicleId: z.string().min(1, 'Vehicle assignment is required'),
+  moduleId: z.string().min(1, 'Module assignment is required'),
 });
 
 type ItemFormValues = z.infer<typeof formSchema>;
@@ -61,14 +54,14 @@ interface ItemDialogProps {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   item?: MedicalItem | null;
+  moduleId?: string | null;
   onSuccess: () => void;
 }
 
-export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogProps) {
+export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: ItemDialogProps) {
   const { toast } = useToast();
   const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [allItems, setAllItems] = useState<MedicalItem[]>([]);
   const { user: authUser } = useAuth();
   const [isScannerVisible, setIsScannerVisible] = useState(false);
@@ -94,7 +87,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
       barcode: '',
       quantity: 0,
       targetQuantity: 100,
-      vehicleId: '',
+      moduleId: '',
       expirationDate: undefined,
     },
   });
@@ -105,16 +98,12 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
     if (!isOpen) {
         setIsScannerVisible(false);
     } else {
-        async function fetchData() {
-            const vehiclesSnapshot = await getDocs(collection(db, 'vehicles'));
-            const vehiclesList = vehiclesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Vehicle);
-            setVehicles(vehiclesList);
-
+        const fetchItems = async () => {
             const itemsSnapshot = await getDocs(collection(db, 'items'));
             const itemsList = itemsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as MedicalItem);
             setAllItems(itemsList);
         }
-        fetchData();
+        fetchItems();
     }
   }, [isOpen]);
 
@@ -132,12 +121,12 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
           barcode: '',
           quantity: 0,
           targetQuantity: 100,
-          vehicleId: '',
+          moduleId: moduleId || '',
           expirationDate: undefined,
         });
       }
     }
-  }, [item, form, isOpen]);
+  }, [item, moduleId, form, isOpen]);
 
   useEffect(() => {
     if (!item && barcodeValue && allItems.length > 0) { // Only run for new items with a barcode
@@ -172,9 +161,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
             toast({ title: "Barcode Scanned", description: `Scanned: ${decodedText}` });
         };
 
-        const onScanFailure = (error: string) => {
-            // This callback is called frequently, so we can ignore it to avoid spamming the console.
-        };
+        const onScanFailure = (error: string) => {};
 
         scannerRef.current = new Html5QrcodeScanner("reader", config, false);
         scannerRef.current.render(onScanSuccess, onScanFailure);
@@ -196,6 +183,11 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
     try {
       if (!authUser) {
         toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to perform this action.' });
+        setIsLoading(false);
+        return;
+      }
+       if (!values.moduleId) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Item must be associated with a module bag.' });
         setIsLoading(false);
         return;
       }
@@ -256,28 +248,6 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
                         <option key={i.id} value={i.name} />
                     ))}
                   </datalist>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="vehicleId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('inventory.itemDialog.vehicleLabel')}</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('inventory.itemDialog.vehiclePlaceholder')} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {vehicles.map((v) => (
-                        <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -359,7 +329,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
                   <FormLabel>{t('inventory.itemDialog.barcodeLabel')}</FormLabel>
                    <div className="flex items-center gap-2">
                     <FormControl>
-                      <Input placeholder={t('inventory.itemDialog.barcodePlaceholder')} {...field} />
+                      <Input placeholder={t('inventory.itemDialog.barcodePlaceholder')} {...field} value={field.value ?? ''}/>
                     </FormControl>
                      <Button
                       type="button"

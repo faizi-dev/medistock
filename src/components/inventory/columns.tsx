@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import type { MedicalItem } from '@/types';
+import type { MedicalItem, Vehicle, Case, ModuleBag } from '@/types';
 import type { TranslationKey } from '@/lib/translations';
 import { format } from 'date-fns';
 
@@ -26,14 +26,10 @@ type Status = {
 const getStatuses = (item: MedicalItem, t: (key: TranslationKey) => string): Status[] => {
   const statuses: Status[] = [];
 
-  // Highest priority: Expired. If an item is expired, that is the only status we show.
   if (item.expirationDate && item.expirationDate.toDate() < new Date()) {
     return [{ key: 'expired', text: t('inventory.status.expired'), variant: 'destructive' }];
   }
-
-  // Check for other statuses that can be combined.
   
-  // Expiration status
   if (item.expirationDate) {
     const fortyTwoDaysFromNow = new Date();
     fortyTwoDaysFromNow.setDate(fortyTwoDaysFromNow.getDate() + 42);
@@ -42,18 +38,14 @@ const getStatuses = (item: MedicalItem, t: (key: TranslationKey) => string): Sta
     }
   }
 
-  // Quantity status
   if (item.quantity < item.targetQuantity) {
     statuses.push({ key: 'understocked', text: t('inventory.status.understocked'), variant: 'destructive' });
   } else if (item.quantity > item.targetQuantity) {
     statuses.push({ key: 'overstocked', text: t('inventory.status.overstocked'), variant: 'outline' });
   } else {
-    // If an item is neither understocked nor overstocked, it is fully stocked.
     statuses.push({ key: 'fullyStocked', text: t('inventory.status.fullyStocked'), variant: 'secondary' });
   }
   
-  // If an item is 'fullyStocked' but has a more critical status like 'expiringSoon',
-  // we filter out 'fullyStocked' to avoid confusion.
   if (statuses.length > 1) {
     return statuses.filter(status => status.key !== 'fullyStocked');
   }
@@ -63,7 +55,9 @@ const getStatuses = (item: MedicalItem, t: (key: TranslationKey) => string): Sta
 
 
 export const getColumns = (
-  vehicles: { id: string; name: string }[],
+  vehicleMap: Map<string, Vehicle>,
+  caseMap: Map<string, Case>,
+  moduleBagMap: Map<string, ModuleBag>,
   onEdit: (item: MedicalItem) => void,
   onDelete: (item: MedicalItem) => void,
   t: (key: TranslationKey) => string
@@ -84,16 +78,21 @@ export const getColumns = (
     cell: ({ row }) => <div className="font-medium">{row.getValue('name')}</div>,
   },
   {
-    accessorKey: 'vehicleId',
-    header: t('inventory.columns.vehicle'),
+    id: 'location',
+    accessorKey: 'moduleId',
+    header: t('inventory.columns.location'),
     cell: ({ row }) => {
-      const vehicleId = row.getValue('vehicleId') as string;
-      const vehicle = vehicles.find((v) => v.id === vehicleId);
-      return vehicle ? vehicle.name : t('inventory.columns.unassigned');
-    },
-    filterFn: (row, id, value) => {
-      if (!value) return true;
-      return row.getValue(id) === value;
+      const moduleId = row.getValue('location') as string;
+      const moduleBag = moduleBagMap.get(moduleId);
+      if (!moduleBag) return t('inventory.columns.unassigned');
+
+      const caseItem = caseMap.get(moduleBag.caseId);
+      if (!caseItem) return moduleBag.name;
+
+      const vehicle = vehicleMap.get(caseItem.vehicleId);
+      if (!vehicle) return `${caseItem.name} > ${moduleBag.name}`;
+      
+      return `${vehicle.name} > ${caseItem.name} > ${moduleBag.name}`;
     },
   },
   {

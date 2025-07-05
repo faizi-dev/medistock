@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, where, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { MedicalItem, Vehicle } from '@/types';
+import type { MedicalItem, Vehicle, Case, ModuleBag } from '@/types';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Truck, Package, AlertTriangle, Bell, Boxes } from 'lucide-react';
+import { Truck, AlertTriangle, Bell, Boxes } from 'lucide-react';
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, CartesianGrid } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from '@/context/language-context';
@@ -14,26 +14,38 @@ import { useLanguage } from '@/context/language-context';
 export default function DashboardPage() {
   const [items, setItems] = useState<MedicalItem[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [cases, setCases] = useState<Case[]>([]);
+  const [moduleBags, setModuleBags] = useState<ModuleBag[]>([]);
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
 
   useEffect(() => {
     const itemsQuery = query(collection(db, 'items'));
     const unsubscribeItems = onSnapshot(itemsQuery, (snapshot) => {
-      const itemsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MedicalItem));
-      setItems(itemsData);
+      setItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MedicalItem)));
       setLoading(false);
     });
 
     const vehiclesQuery = query(collection(db, 'vehicles'));
     const unsubscribeVehicles = onSnapshot(vehiclesQuery, (snapshot) => {
-      const vehiclesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Vehicle));
-      setVehicles(vehiclesData);
+      setVehicles(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Vehicle)));
+    });
+
+    const casesQuery = query(collection(db, 'cases'));
+    const unsubscribeCases = onSnapshot(casesQuery, (snapshot) => {
+        setCases(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Case)));
+    });
+
+    const moduleBagsQuery = query(collection(db, 'moduleBags'));
+    const unsubscribeModuleBags = onSnapshot(moduleBagsQuery, (snapshot) => {
+        setModuleBags(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ModuleBag)));
     });
 
     return () => {
       unsubscribeItems();
       unsubscribeVehicles();
+      unsubscribeCases();
+      unsubscribeModuleBags();
     };
   }, []);
 
@@ -48,8 +60,15 @@ export default function DashboardPage() {
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
 
   const inventoryByVehicle = vehicles.map(vehicle => {
-    const vehicleItems = items.filter(item => item.vehicleId === vehicle.id);
-    const totalQuantity = vehicleItems.reduce((acc, item) => acc + item.quantity, 0);
+    const casesInVehicle = cases.filter(c => c.vehicleId === vehicle.id);
+    const caseIds = casesInVehicle.map(c => c.id);
+    
+    const modulesInVehicle = moduleBags.filter(m => caseIds.includes(m.caseId));
+    const moduleIds = modulesInVehicle.map(m => m.id);
+
+    const itemsInVehicle = items.filter(item => moduleIds.includes(item.moduleId));
+    const totalQuantity = itemsInVehicle.reduce((acc, item) => acc + item.quantity, 0);
+
     return {
       name: vehicle.name,
       total: totalQuantity,
