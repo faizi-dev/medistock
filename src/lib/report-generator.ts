@@ -45,26 +45,55 @@ const generateHtmlShell = (title: string, content: string, t: (key: TranslationK
       </style>
       <script>
         function downloadPDF() {
-          const { jsPDF } = window.jspdf;
-          const report = document.getElementById('report-content');
-          const buttons = document.querySelector('.button-container');
-          if (buttons) buttons.style.display = 'none';
+          try {
+            const { jsPDF } = window.jspdf;
+            const report = document.getElementById('report-content');
+            const buttons = document.querySelector('.button-container');
 
-          html2canvas(report, { scale: 2 }).then(canvas => {
-            if (buttons) buttons.style.display = 'flex';
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({
-              orientation: 'p',
-              unit: 'px',
-              format: [canvas.width, canvas.height]
+            if (!report) {
+              alert('Error: Could not find report content to download.');
+              console.error('Report content element with id "report-content" not found.');
+              return;
+            }
+            
+            if (buttons) {
+              buttons.style.display = 'none';
+            }
+
+            html2canvas(report, { scale: 2, useCORS: true }).then(canvas => {
+              if (buttons) {
+                buttons.style.display = 'flex';
+              }
+              
+              const imgData = canvas.toDataURL('image/png');
+              const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'pt',
+                format: 'a4'
+              });
+
+              const imgProps = pdf.getImageProperties(imgData);
+              const pdfWidth = pdf.internal.pageSize.getWidth();
+              const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+              
+              pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+              pdf.save('${safeTitle}.pdf');
+
+            }).catch((err) => {
+              if (buttons) {
+                buttons.style.display = 'flex';
+              }
+              console.error("Could not generate PDF:", err);
+              alert("Sorry, there was an error generating the PDF. Please check the browser console for more details.");
             });
-            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-            pdf.save('${safeTitle}.pdf');
-          }).catch((err) => {
-            if (buttons) buttons.style.display = 'flex';
-            console.error("Could not generate PDF:", err);
-            alert("Sorry, there was an error generating the PDF.");
-          });
+          } catch (e) {
+              console.error('An error occurred in the downloadPDF function:', e);
+              alert('An unexpected error occurred while trying to download the PDF. Please check the browser console.');
+              const buttons = document.querySelector('.button-container');
+              if (buttons) {
+                buttons.style.display = 'flex';
+              }
+          }
         }
       </script>
     </head>
