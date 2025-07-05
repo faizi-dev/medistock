@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -88,19 +89,14 @@ export function ItemDialog({ isOpen, setIsOpen, item, onSuccess }: ItemDialogPro
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: item
-      ? {
-          ...item,
-          barcode: item.barcode || '',
-          expirationDate: item.expirationDate?.toDate(),
-        }
-      : {
-          name: '',
-          barcode: '',
-          quantity: 0,
-          targetQuantity: 100,
-          vehicleId: '',
-        },
+    defaultValues: {
+      name: '',
+      barcode: '',
+      quantity: 0,
+      targetQuantity: 100,
+      vehicleId: '',
+      expirationDate: undefined,
+    },
   });
 
   const barcodeValue = form.watch('barcode');
