@@ -5,7 +5,7 @@ import type { TranslationKey } from './translations';
 
 type ReportType = 'full' | 'restock' | 'expiring';
 
-const generateHtmlShell = (title: string, content: string) => {
+const generateHtmlShell = (title: string, content: string, t: (key: TranslationKey) => string) => {
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -32,9 +32,16 @@ const generateHtmlShell = (title: string, content: string) => {
         .understocked { color: #dc3545; font-weight: bold; }
         .overstocked { color: #007bff; }
         .footer { text-align: center; margin-top: 2rem; font-size: 0.8rem; color: #6c757d; }
+        .print-button { position: fixed; top: 20px; right: 20px; padding: 10px 20px; background-color: #2071a8; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        @media print {
+          .print-button { display: none; }
+          body { padding: 0; }
+          .container { box-shadow: none; border-radius: 0; padding: 1rem; }
+        }
       </style>
     </head>
     <body>
+      <button class="print-button" onclick="window.print()">${t('report.printOrDownload')}</button>
       <div class="container">
         ${content}
         <div class="footer">MediStock Inventory Management System</div>
@@ -169,5 +176,5 @@ export const generateReportHtml = (
 
   const fullHtmlContent = titleHtml + summaryHtml + mainContent;
 
-  return generateHtmlShell(reportTitle, fullHtmlContent);
+  return generateHtmlShell(reportTitle, fullHtmlContent, t);
 };
