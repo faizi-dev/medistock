@@ -26,10 +26,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Loader2, Camera } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Loader2, Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import type { MedicalItem } from '@/types';
 import { Timestamp } from 'firebase/firestore';
@@ -38,13 +35,50 @@ import { useAuth } from '@/hooks/use-auth';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import type { Html5QrcodeScannerConfig, QrCodeSuccessCallback } from 'html5-qrcode';
 
+const expirationDateSchema = z.string()
+  .optional()
+  .refine((val) => {
+    if (!val || val === '') return true;
+    return /^\d{2}\.\d{2}\.\d{2}$/.test(val);
+  }, {
+    message: "Date must be in DD.MM.YY format."
+  })
+  .transform((val, ctx) => {
+    if (!val || val === '') {
+      return undefined;
+    }
+    const [day, month, year] = val.split('.').map(num => parseInt(num, 10));
+    // Assumes years 2000-2099
+    const fullYear = 2000 + year;
+    const date = new Date(Date.UTC(fullYear, month - 1, day));
+    
+    if (isNaN(date.getTime()) || date.getUTCFullYear() !== fullYear || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid date. Please check day, month, and year.',
+      });
+      return z.NEVER;
+    }
+
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    if (date < today) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Expiration date cannot be in the past.',
+        });
+        return z.NEVER;
+    }
+
+    return date;
+  });
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   barcode: z.string().optional(),
   quantity: z.coerce.number().int().min(0, 'Quantity must be non-negative'),
   targetQuantity: z.coerce.number().int().min(0, 'Target quantity must be non-negative'),
-  expirationDate: z.date().optional(),
+  expirationDate: expirationDateSchema,
   moduleId: z.string().min(1, 'Module assignment is required'),
 });
 
@@ -88,7 +122,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
       quantity: 0,
       targetQuantity: 100,
       moduleId: '',
-      expirationDate: undefined,
+      expirationDate: '',
     },
   });
 
@@ -110,10 +144,11 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
   useEffect(() => {
     if (isOpen) {
       if (item) {
+        const expDate = item.expirationDate?.toDate();
         form.reset({
           ...item,
           barcode: item.barcode || '',
-          expirationDate: item.expirationDate?.toDate(),
+          expirationDate: expDate ? format(expDate, 'dd.MM.yy') : '',
         });
       } else {
         form.reset({
@@ -122,7 +157,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
           quantity: 0,
           targetQuantity: 100,
           moduleId: moduleId || '',
-          expirationDate: undefined,
+          expirationDate: '',
         });
       }
     }
@@ -284,39 +319,15 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
               control={form.control}
               name="expirationDate"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem>
                   <FormLabel>{t('inventory.itemDialog.expirationDateLabel')}</FormLabel>
-                   <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>{t('inventory.itemDialog.pickDate')}</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date < new Date()
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <FormControl>
+                    <Input
+                      placeholder="DD.MM.YY"
+                      {...field}
+                      value={field.value || ''}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
