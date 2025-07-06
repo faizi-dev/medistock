@@ -19,11 +19,11 @@ const generateHtmlShell = (title: string, content: string, t: (key: TranslationK
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 2rem; background-color: #f8f9fa; color: #333; }
         .container { max-width: 1200px; margin: 0 auto; background-color: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1, h2, h3, h4 { color: #2071a8; }
-        h1 { font-size: 2rem; border-bottom: 2px solid #2071a8; padding-bottom: 0.5rem; margin-bottom: 1rem; }
-        h2 { font-size: 1.5rem; margin-top: 2rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
-        h3 { font-size: 1.25rem; margin-top: 1.5rem; }
-        h4 { font-size: 1.1rem; margin-top: 1rem; }
+        h1 { font-size: 2rem; border-bottom: 2px solid #2071a8; padding-bottom: 0.5rem; margin-bottom: 1rem; color: #2071a8; }
+        h2 { font-size: 1.6rem; margin-top: 2.5rem; padding-bottom: 0.5rem; color: #2c3e50; }
+        h3 { font-size: 1.3rem; margin-top: 1.5rem; color: #3498db; }
+        h4 { font-size: 1.1rem; margin-top: 1rem; color: #95a5a6; font-weight: bold; text-transform: uppercase; }
+        .vehicle-divider { border: 0; border-top: 2px dashed #cccccc; margin: 2.5rem 0; }
         table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
         th, td { border: 1px solid #dee2e6; padding: 0.75rem; text-align: left; }
         th { background-color: #f1f3f5; }
@@ -208,44 +208,49 @@ export const generateReportHtml = (
   if (groupedData.size === 0) {
       mainContent += `<div class="no-items">${t('report.noItems')}</div>`;
   } else {
-    for (const [vehicleId, casesMap] of groupedData.entries()) {
-      const vehicle = vehicleMap.get(vehicleId)!;
-      mainContent += `<h2>${t('report.vehicle')}: ${vehicle.name}</h2>`;
-      for (const [caseId, modulesMap] of casesMap.entries()) {
-        const caseItem = caseMap.get(caseId)!;
-        mainContent += `<h3>${t('report.case')}: ${caseItem.name}</h3>`;
-        for (const [moduleId, itemsList] of modulesMap.entries()) {
-          const moduleBag = moduleBagMap.get(moduleId)!;
-          mainContent += `<h4>${t('report.module')}: ${moduleBag.name}</h4>`;
-          mainContent += `
-            <table>
-              <thead>
-                <tr>
-                  <th>${t('report.itemName')}</th>
-                  <th>${t('report.quantity')}</th>
-                  <th>${t('report.target')}</th>
-                  <th>${t('report.restockNeeded')}</th>
-                  <th>${t('report.expires')}</th>
-                </tr>
-              </thead>
-              <tbody>
-          `;
-          for (const item of itemsList) {
-            const restockNeeded = item.targetQuantity - item.quantity;
-            const restockClass = restockNeeded > 0 ? 'understocked' : '';
+    const vehicleEntries = Array.from(groupedData.entries());
+    for (let i = 0; i < vehicleEntries.length; i++) {
+        const [vehicleId, casesMap] = vehicleEntries[i];
+        const vehicle = vehicleMap.get(vehicleId)!;
+        mainContent += `<h2>${t('report.vehicle')}: ${vehicle.name}</h2>`;
+        for (const [caseId, modulesMap] of casesMap.entries()) {
+            const caseItem = caseMap.get(caseId)!;
+            mainContent += `<h3>${t('report.case')}: ${caseItem.name}</h3>`;
+            for (const [moduleId, itemsList] of modulesMap.entries()) {
+            const moduleBag = moduleBagMap.get(moduleId)!;
+            mainContent += `<h4>${t('report.module')}: ${moduleBag.name}</h4>`;
             mainContent += `
-              <tr>
-                <td>${item.name}</td>
-                <td>${item.quantity}</td>
-                <td>${item.targetQuantity}</td>
-                <td class="${restockClass}">${restockNeeded > 0 ? restockNeeded : '0'}</td>
-                <td>${item.expirationDate ? format(item.expirationDate.toDate(), 'yyyy-MM-dd') : 'N/A'}</td>
-              </tr>
+                <table>
+                <thead>
+                    <tr>
+                    <th>${t('report.itemName')}</th>
+                    <th>${t('report.quantity')}</th>
+                    <th>${t('report.target')}</th>
+                    <th>${t('report.restockNeeded')}</th>
+                    <th>${t('report.expires')}</th>
+                    </tr>
+                </thead>
+                <tbody>
             `;
-          }
-          mainContent += `</tbody></table>`;
+            for (const item of itemsList) {
+                const restockNeeded = item.targetQuantity - item.quantity;
+                const restockClass = restockNeeded > 0 ? 'understocked' : '';
+                mainContent += `
+                <tr>
+                    <td>${item.name}</td>
+                    <td>${item.quantity}</td>
+                    <td>${item.targetQuantity}</td>
+                    <td class="${restockClass}">${restockNeeded > 0 ? restockNeeded : '0'}</td>
+                    <td>${item.expirationDate ? format(item.expirationDate.toDate(), 'yyyy-MM-dd') : 'N/A'}</td>
+                </tr>
+                `;
+            }
+            mainContent += `</tbody></table>`;
+            }
         }
-      }
+        if (i < vehicleEntries.length - 1) {
+            mainContent += `<hr class="vehicle-divider" />`;
+        }
     }
   }
 
