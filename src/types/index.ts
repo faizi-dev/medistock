@@ -68,3 +68,18 @@ export interface ReorderingSuggestion {
   quantityToReorder: number;
   reason: string;
 }
+
+export interface InventoryCheckItem {
+    itemName: string;
+    batchExpiration: string; // Storing as string for simplicity in the log
+    quantityBefore: number;
+    quantityAfter: number;
+    isExpired: boolean;
+}
+
+export interface InventoryCheck {
+    id: string;
+    checkedAt: Timestamp;
+    checkedBy: { uid: string; name: string | null };
+    items: InventoryCheckItem[];
+}
