@@ -140,7 +140,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
           barcode: item.barcode || '',
           targetQuantity: item.targetQuantity,
           moduleId: item.moduleId,
-          batches: item.batches.map(b => ({
+          batches: (item.batches || []).map(b => ({
             quantity: b.quantity,
             expirationDate: b.expirationDate ? format(b.expirationDate.toDate(), 'dd.MM.yy') : ''
           }))
