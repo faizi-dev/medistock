@@ -26,8 +26,9 @@ type Status = {
 const getStatuses = (item: MedicalItem, t: (key: TranslationKey) => string): Status[] => {
   const statuses: Status[] = [];
   const now = new Date();
+  const batches = Array.isArray(item.batches) ? item.batches : [];
 
-  const isExpired = item.batches.some(b => b.expirationDate && b.expirationDate.toDate() < now);
+  const isExpired = batches.some(b => b.expirationDate && b.expirationDate.toDate() < now);
   if (isExpired) {
     return [{ key: 'expired', text: t('inventory.status.expired'), variant: 'destructive' }];
   }
