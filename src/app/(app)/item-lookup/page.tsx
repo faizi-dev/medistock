@@ -30,7 +30,7 @@ export default function ItemLookupPage() {
     const { toast } = useToast();
 
     const [searchQuery, setSearchQuery] = useState('');
-    const [foundItem, setFoundItem] = useState<MedicalItem | null>(null);
+    const [foundItems, setFoundItems] = useState<MedicalItem[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [noResult, setNoResult] = useState(false);
 
@@ -40,12 +40,13 @@ export default function ItemLookupPage() {
 
     const handleSearch = () => {
         if (!searchQuery.trim()) {
-            setFoundItem(null);
+            setFoundItems([]);
             setNoResult(false);
             return;
         }
         setIsSearching(true);
         setNoResult(false);
+        setFoundItems([]);
 
         const q = query(
             collection(db, 'items'),
@@ -54,12 +55,14 @@ export default function ItemLookupPage() {
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             if (!snapshot.empty) {
-                const itemData = snapshot.docs[0].data() as MedicalItem;
-                const processed = processItem({ id: snapshot.docs[0].id, ...itemData });
-                setFoundItem(processed);
+                const itemsData = snapshot.docs.map(doc => {
+                    const itemData = doc.data() as MedicalItem;
+                    return processItem({ id: doc.id, ...itemData });
+                });
+                setFoundItems(itemsData);
                 setNoResult(false);
             } else {
-                setFoundItem(null);
+                setFoundItems([]);
                 setNoResult(true);
             }
             setIsSearching(false);
@@ -74,7 +77,7 @@ export default function ItemLookupPage() {
     const startScanner = async () => {
         setIsScanning(true);
         setSearchQuery('');
-        setFoundItem(null);
+        setFoundItems([]);
         setNoResult(false);
         
         try {
@@ -126,7 +129,7 @@ export default function ItemLookupPage() {
 
     const clearSearch = () => {
         setSearchQuery('');
-        setFoundItem(null);
+        setFoundItems([]);
         setNoResult(false);
         if (isScanning) {
             stopScanner();
@@ -134,7 +137,7 @@ export default function ItemLookupPage() {
     };
     
     const ItemCard = ({ item }: { item: MedicalItem }) => (
-        <Card className="mt-8 animate-in fade-in-50">
+        <Card className="animate-in fade-in-50">
             <CardHeader>
                 <div className="flex justify-between items-start">
                     <div>
@@ -217,26 +220,30 @@ export default function ItemLookupPage() {
                 </Button>
             </div>
             
-            <div className="max-w-2xl mx-auto mt-4">
+            <div className="max-w-2xl mx-auto mt-8 space-y-6">
                 {isScanning && <div id={scannerRegionId} className="w-full aspect-video bg-muted rounded-md border"/>}
                 
                 {isSearching && (
-                    <div className="mt-8 space-y-4">
+                    <div className="space-y-4">
                         <Skeleton className="h-32 w-full" />
                         <Skeleton className="h-24 w-full" />
                     </div>
                 )}
                 
                 {noResult && (
-                    <Alert variant="default" className="mt-8">
+                    <Alert variant="default">
                         <Info className="h-4 w-4"/>
                         <AlertTitle>{t('itemLookup.noResultsTitle')}</AlertTitle>
                         <AlertDescription>{t('itemLookup.noResultsDescription').replace('{query}', searchQuery)}</AlertDescription>
                     </Alert>
                 )}
                 
-                {foundItem && <ItemCard item={foundItem} />}
+                {foundItems.map(item => (
+                    <ItemCard key={item.id} item={item} />
+                ))}
             </div>
         </>
     );
 }
+
+    
