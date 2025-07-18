@@ -13,11 +13,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Camera, Search, X, Package, Calendar, Info, StickyNote } from 'lucide-react';
+import { Camera, Search, X, Package, Calendar, Info, StickyNote, PlusCircle } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
+import { AddStockDialog } from '@/components/inventory/add-stock-dialog';
 
 const processItem = (item: MedicalItem): MedicalItem => {
     const batches = Array.isArray(item.batches) ? item.batches : [];
@@ -37,6 +38,9 @@ export default function ItemLookupPage() {
     const [isScanning, setIsScanning] = useState(false);
     const scannerRef = useRef<Html5Qrcode | null>(null);
     const scannerRegionId = "barcode-scanner-region";
+
+    const [isAddStockDialogOpen, setAddStockDialogOpen] = useState(false);
+    const [selectedItemForStock, setSelectedItemForStock] = useState<MedicalItem | null>(null);
 
     const handleSearch = () => {
         if (!searchQuery.trim()) {
@@ -66,12 +70,14 @@ export default function ItemLookupPage() {
                 setNoResult(true);
             }
             setIsSearching(false);
-            unsubscribe();
+            // We don't unsubscribe here to get live updates
         }, (error) => {
             console.error("Search failed:", error);
             toast({ variant: 'destructive', title: "Search Error", description: "Could not perform search." });
             setIsSearching(false);
         });
+        // This is a one-time query, so we unsubscribe after first result for this search implementation
+        setTimeout(() => unsubscribe(), 2000);
     };
     
     const startScanner = async () => {
@@ -135,6 +141,11 @@ export default function ItemLookupPage() {
             stopScanner();
         }
     };
+
+    const handleAddStock = (item: MedicalItem) => {
+        setSelectedItemForStock(item);
+        setAddStockDialogOpen(true);
+    };
     
     const ItemCard = ({ item }: { item: MedicalItem }) => (
         <Card className="animate-in fade-in-50">
@@ -169,6 +180,7 @@ export default function ItemLookupPage() {
                                 <div key={index} className="flex justify-between items-center text-sm">
                                     <span>{t('itemLookup.quantity')}: <span className="font-mono font-medium">{batch.quantity}</span></span>
                                     <span>{batch.expirationDate ? format(batch.expirationDate.toDate(), 'MM/dd/yyyy') : 'N/A'}</span>
+                                    <span>{batch.deliveryDate ? `Del: ${format(batch.deliveryDate.toDate(), 'MM/dd/yyyy')}` : ''}</span>
                                 </div>
                             ))
                         ) : (
@@ -177,13 +189,20 @@ export default function ItemLookupPage() {
                     </div>
                 </div>
             </CardContent>
-            <CardFooter className="text-xs text-muted-foreground flex justify-between">
-                 <span>
-                    {t('itemLookup.lastUpdatedBy')}: {item.updatedBy?.name || item.createdBy.name}
-                 </span>
-                 <span>
-                    {t('itemLookup.lastUpdatedOn')}: {format((item.updatedAt || item.createdAt).toDate(), 'PPpp')}
-                 </span>
+            <CardFooter className="flex justify-between items-center">
+                 <div className="text-xs text-muted-foreground">
+                    <span>
+                        {t('itemLookup.lastUpdatedBy')}: {item.updatedBy?.name || item.createdBy.name}
+                    </span>
+                    <br/>
+                    <span>
+                        {t('itemLookup.lastUpdatedOn')}: {format((item.updatedAt || item.createdAt).toDate(), 'PPpp')}
+                    </span>
+                 </div>
+                 <Button variant="outline" size="sm" onClick={() => handleAddStock(item)}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    {t('itemLookup.addStockButton')}
+                 </Button>
             </CardFooter>
         </Card>
     );
@@ -242,8 +261,16 @@ export default function ItemLookupPage() {
                     <ItemCard key={item.id} item={item} />
                 ))}
             </div>
+            
+            <AddStockDialog
+                isOpen={isAddStockDialogOpen}
+                setIsOpen={setAddStockDialogOpen}
+                item={selectedItemForStock}
+                onSuccess={() => {
+                    // Re-run search to refresh data
+                    handleSearch();
+                }}
+            />
         </>
     );
 }
-
-    

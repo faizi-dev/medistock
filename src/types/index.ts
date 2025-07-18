@@ -4,6 +4,7 @@ import type { Timestamp } from 'firebase/firestore';
 export interface MedicalItemBatch {
   quantity: number;
   expirationDate: Timestamp | null;
+  deliveryDate?: Timestamp | null;
 }
 
 export interface MedicalItem {
