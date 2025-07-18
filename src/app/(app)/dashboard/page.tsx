@@ -14,8 +14,9 @@ import { useLanguage } from '@/context/language-context';
 
 const processItems = (items: MedicalItem[]): MedicalItem[] => {
   return items.map(item => {
-    const totalQuantity = item.batches.reduce((sum, batch) => sum + batch.quantity, 0);
-    const earliestExpiration = item.batches
+    const batches = Array.isArray(item.batches) ? item.batches : [];
+    const totalQuantity = batches.reduce((sum, batch) => sum + batch.quantity, 0);
+    const earliestExpiration = batches
       .filter(b => b.expirationDate)
       .map(b => b.expirationDate!)
       .sort((a, b) => a.toMillis() - b.toMillis())[0] || null;
