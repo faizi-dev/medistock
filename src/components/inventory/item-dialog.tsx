@@ -33,6 +33,7 @@ import { Timestamp } from 'firebase/firestore';
 import { useLanguage } from '@/context/language-context';
 import { useAuth } from '@/hooks/use-auth';
 import { Separator } from '../ui/separator';
+import { Textarea } from '../ui/textarea';
 
 const batchSchema = z.object({
   quantity: z.coerce.number().int().min(1, 'Quantity must be at least 1'),
@@ -66,6 +67,7 @@ const formSchema = z.object({
   barcode: z.string().optional(),
   targetQuantity: z.coerce.number().int().min(0, 'Target must be non-negative'),
   moduleId: z.string().min(1, 'Module assignment is required'),
+  notes: z.string().optional(),
   batches: z.array(batchSchema).min(1, 'At least one batch is required.'),
 });
 
@@ -106,6 +108,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
       barcode: '',
       targetQuantity: 100,
       moduleId: '',
+      notes: '',
       batches: [{ quantity: 0, expirationDate: '' }],
     },
   });
@@ -140,6 +143,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
           barcode: item.barcode || '',
           targetQuantity: item.targetQuantity,
           moduleId: item.moduleId,
+          notes: item.notes || '',
           batches: (item.batches || []).map(b => ({
             quantity: b.quantity,
             expirationDate: b.expirationDate ? format(b.expirationDate.toDate(), 'dd.MM.yy') : ''
@@ -151,6 +155,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
           barcode: '',
           targetQuantity: 100,
           moduleId: moduleId || '',
+          notes: '',
           batches: [{ quantity: 1, expirationDate: '' }],
         });
       }
@@ -163,6 +168,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
         if (existingItem) {
             form.setValue("name", existingItem.name, { shouldValidate: true });
             form.setValue("targetQuantity", existingItem.targetQuantity, { shouldValidate: true });
+            form.setValue("notes", existingItem.notes || '', { shouldValidate: true });
             toast({
                 title: 'Item Recognized',
                 description: `Details for '${existingItem.name}' have been pre-filled.`
@@ -181,6 +187,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
         name: values.name,
         barcode: values.barcode,
         targetQuantity: values.targetQuantity,
+        notes: values.notes,
         moduleId: values.moduleId,
         batches: values.batches.map(b => ({
           quantity: b.quantity,
@@ -281,6 +288,20 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
                       <span className="sr-only">Scan Barcode</span>
                     </Button>
                   </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('inventory.itemDialog.notesLabel')}</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder={t('inventory.itemDialog.notesPlaceholder')} {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

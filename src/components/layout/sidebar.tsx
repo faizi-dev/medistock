@@ -9,6 +9,7 @@ import {
   Truck,
   Users,
   Cog,
+  Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
@@ -21,6 +22,7 @@ import { LanguageSwitcher } from './language-switcher';
 const navItems = [
   { href: '/dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard },
   { href: '/inventory', labelKey: 'nav.inventory', icon: Package },
+  { href: '/item-lookup', labelKey: 'nav.itemLookup', icon: Search },
   { href: '/vehicles', labelKey: 'nav.vehicles', icon: Truck },
   { href: '/users', labelKey: 'nav.users', icon: Users, adminOnly: true },
   { href: '/settings', labelKey: 'nav.settings', icon: Cog, adminOnly: true },

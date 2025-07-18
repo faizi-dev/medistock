@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export interface MedicalItemBatch {
@@ -12,6 +13,7 @@ export interface MedicalItem {
   targetQuantity: number;
   moduleId: string;
   batches: MedicalItemBatch[];
+  notes?: string;
   // Calculated fields, not stored in DB but useful on client
   quantity?: number; 
   earliestExpiration?: Timestamp | null;
