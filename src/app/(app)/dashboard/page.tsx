@@ -2,15 +2,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { MedicalItem, Vehicle, Case, ModuleBag } from '@/types';
+import type { MedicalItem, Vehicle, Case, ModuleBag, InventoryCheck } from '@/types';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Truck, AlertTriangle, Bell, Boxes } from 'lucide-react';
+import { Truck, AlertTriangle, Bell, Boxes, ListChecks } from 'lucide-react';
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, CartesianGrid } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from '@/context/language-context';
+import { ActionAlert } from '@/components/shared/action-alert';
 
 const processItems = (items: MedicalItem[]): MedicalItem[] => {
   return items.map(item => {
@@ -29,6 +30,7 @@ export default function DashboardPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [cases, setCases] = useState<Case[]>([]);
   const [moduleBags, setModuleBags] = useState<ModuleBag[]>([]);
+  const [lastCheck, setLastCheck] = useState<InventoryCheck | null>(null);
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
 
@@ -55,13 +57,31 @@ export default function DashboardPage() {
         setModuleBags(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ModuleBag)));
     });
 
+    const checksQuery = query(collection(db, 'inventoryChecks'), orderBy('checkedAt', 'desc'), limit(1));
+    const unsubscribeChecks = onSnapshot(checksQuery, (snapshot) => {
+      if (!snapshot.empty) {
+        setLastCheck(snapshot.docs[0].data() as InventoryCheck);
+      }
+    });
+
     return () => {
       unsubscribeItems();
       unsubscribeVehicles();
       unsubscribeCases();
       unsubscribeModuleBags();
+      unsubscribeChecks();
     };
   }, []);
+
+  const shouldShowInventoryCheckPrompt = () => {
+    if (loading) return false;
+    if (!lastCheck) return true; // Always show if no check has ever been done
+    
+    const lastCheckDate = lastCheck.checkedAt.toDate();
+    const now = new Date();
+    
+    return lastCheckDate.getFullYear() < now.getFullYear() || lastCheckDate.getMonth() < now.getMonth();
+  };
 
   const understockedItems = items.filter(item => (item.quantity || 0) < item.targetQuantity).length;
   
@@ -78,12 +98,16 @@ export default function DashboardPage() {
     const casesInVehicle = cases.filter(c => c.vehicleId === vehicle.id);
     const caseIds = casesInVehicle.map(c => c.id);
     
-    const modulesInVehicle = moduleBags.filter(m => caseIds.includes(m.caseId));
+    const modulesInVehicle = moduleBags.filter(m => caseIds.includes(m.caseId || ''));
     const moduleIds = modulesInVehicle.map(m => m.id);
 
-    const itemsInVehicle = items.filter(item => moduleIds.includes(item.moduleId));
-    const totalQuantity = itemsInVehicle.reduce((acc, item) => acc + (item.quantity || 0), 0);
-
+    let totalQuantity = 0;
+    items.forEach(item => {
+      if(item.moduleId && moduleIds.includes(item.moduleId)) {
+        totalQuantity += (item.quantity || 0);
+      }
+    });
+    
     return {
       name: vehicle.name,
       total: totalQuantity,
@@ -118,6 +142,19 @@ export default function DashboardPage() {
         title={t('dashboard.title')}
         description={t('dashboard.description')}
       />
+
+      {shouldShowInventoryCheckPrompt() && (
+        <div className="mb-6">
+            <ActionAlert
+                icon={ListChecks}
+                title={t('dashboard.inventoryCheckPrompt.title')}
+                description={t('dashboard.inventoryCheckPrompt.description')}
+                actionHref="/inventory/check"
+                actionText={t('inventoryCheck.startCheck.title')}
+            />
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard isLoading={loading} title={t('dashboard.totalVehicles')} value={vehicles.length} icon={Truck} description={t('dashboard.totalVehiclesDesc')} />
         <StatsCard isLoading={loading} title={t('dashboard.totalItems')} value={totalItems} icon={Boxes} description={t('dashboard.totalItemsDesc')} />
