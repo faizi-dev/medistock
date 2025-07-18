@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState, useEffect, useMemo } from 'react';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { addDoc, collection, doc, serverTimestamp, setDoc, getDocs } from 'firebase/firestore';
@@ -26,60 +26,47 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Loader2, Camera } from 'lucide-react';
+import { Loader2, Camera, PlusCircle, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
-import type { MedicalItem } from '@/types';
+import type { MedicalItem, MedicalItemBatch } from '@/types';
 import { Timestamp } from 'firebase/firestore';
 import { useLanguage } from '@/context/language-context';
 import { useAuth } from '@/hooks/use-auth';
-import { Html5QrcodeScanner } from 'html5-qrcode';
-import type { Html5QrcodeScannerConfig, QrCodeSuccessCallback } from 'html5-qrcode';
+import { Separator } from '../ui/separator';
 
-const expirationDateSchema = z.string()
-  .optional()
-  .refine((val) => {
-    if (!val || val === '') return true;
-    return /^\d{2}\.\d{2}\.\d{2}$/.test(val);
-  }, {
-    message: "Date must be in DD.MM.YY format."
-  })
-  .transform((val, ctx) => {
-    if (!val || val === '') {
-      return undefined;
-    }
-    const [day, month, year] = val.split('.').map(num => parseInt(num, 10));
-    // Assumes years 2000-2099
-    const fullYear = 2000 + year;
-    const date = new Date(Date.UTC(fullYear, month - 1, day));
-    
-    if (isNaN(date.getTime()) || date.getUTCFullYear() !== fullYear || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Invalid date. Please check day, month, and year.',
-      });
-      return z.NEVER;
-    }
+const batchSchema = z.object({
+  quantity: z.coerce.number().int().min(1, 'Quantity must be at least 1'),
+  expirationDate: z.string().optional()
+    .refine((val) => {
+      if (!val || val === '') return true;
+      return /^\d{2}\.\d{2}\.\d{2}$/.test(val);
+    }, { message: "Date must be DD.MM.YY" })
+    .transform((val, ctx) => {
+      if (!val || val === '') return null;
+      const [day, month, year] = val.split('.').map(num => parseInt(num, 10));
+      const fullYear = 2000 + year;
+      const date = new Date(Date.UTC(fullYear, month - 1, day));
 
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    if (date < today) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'Expiration date cannot be in the past.',
-        });
+      if (isNaN(date.getTime()) || date.getUTCFullYear() !== fullYear || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid date.' });
         return z.NEVER;
-    }
-
-    return date;
-  });
+      }
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
+      if (date < today) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Date cannot be in the past.' });
+        return z.NEVER;
+      }
+      return date;
+    }),
+});
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   barcode: z.string().optional(),
-  quantity: z.coerce.number().int().min(0, 'Quantity must be non-negative'),
-  targetQuantity: z.coerce.number().int().min(0, 'Target quantity must be non-negative'),
-  expirationDate: expirationDateSchema,
+  targetQuantity: z.coerce.number().int().min(0, 'Target must be non-negative'),
   moduleId: z.string().min(1, 'Module assignment is required'),
+  batches: z.array(batchSchema).min(1, 'At least one batch is required.'),
 });
 
 type ItemFormValues = z.infer<typeof formSchema>;
@@ -98,8 +85,6 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
   const [isLoading, setIsLoading] = useState(false);
   const [allItems, setAllItems] = useState<MedicalItem[]>([]);
   const { user: authUser } = useAuth();
-  const [isScannerVisible, setIsScannerVisible] = useState(false);
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   const uniqueItemsByName = useMemo(() => {
     const seen = new Set<string>();
@@ -119,19 +104,25 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
     defaultValues: {
       name: '',
       barcode: '',
-      quantity: 0,
       targetQuantity: 100,
       moduleId: '',
-      expirationDate: '',
+      batches: [{ quantity: 0, expirationDate: '' }],
     },
   });
 
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "batches"
+  });
+
   const barcodeValue = form.watch('barcode');
+  const batches = form.watch('batches');
+  const totalQuantity = useMemo(() => {
+    return batches.reduce((sum, batch) => sum + (Number(batch.quantity) || 0), 0);
+  }, [batches]);
   
   useEffect(() => {
-    if (!isOpen) {
-        setIsScannerVisible(false);
-    } else {
+    if (isOpen) {
         const fetchItems = async () => {
             const itemsSnapshot = await getDocs(collection(db, 'items'));
             const itemsList = itemsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as MedicalItem);
@@ -144,27 +135,30 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
   useEffect(() => {
     if (isOpen) {
       if (item) {
-        const expDate = item.expirationDate?.toDate();
         form.reset({
-          ...item,
+          name: item.name,
           barcode: item.barcode || '',
-          expirationDate: expDate ? format(expDate, 'dd.MM.yy') : '',
+          targetQuantity: item.targetQuantity,
+          moduleId: item.moduleId,
+          batches: item.batches.map(b => ({
+            quantity: b.quantity,
+            expirationDate: b.expirationDate ? format(b.expirationDate.toDate(), 'dd.MM.yy') : ''
+          }))
         });
       } else {
         form.reset({
           name: '',
           barcode: '',
-          quantity: 0,
           targetQuantity: 100,
           moduleId: moduleId || '',
-          expirationDate: '',
+          batches: [{ quantity: 1, expirationDate: '' }],
         });
       }
     }
   }, [item, moduleId, form, isOpen]);
 
   useEffect(() => {
-    if (!item && barcodeValue && allItems.length > 0) { // Only run for new items with a barcode
+    if (!item && barcodeValue && allItems.length > 0) {
         const existingItem = allItems.find(i => i.barcode === barcodeValue);
         if (existingItem) {
             form.setValue("name", existingItem.name, { shouldValidate: true });
@@ -177,77 +171,42 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
     }
   }, [barcodeValue, allItems, item, form, toast]);
 
-    useEffect(() => {
-    if (isScannerVisible) {
-        const config: Html5QrcodeScannerConfig = {
-            qrbox: { width: 250, height: 150 },
-            fps: 10,
-            rememberLastUsedCamera: true,
-        };
-
-        const onScanSuccess: QrCodeSuccessCallback = (decodedText, decodedResult) => {
-            if (scannerRef.current) {
-                scannerRef.current.clear().catch(error => {
-                    console.error("Failed to clear scanner", error);
-                });
-            }
-            setIsScannerVisible(false);
-            form.setValue('barcode', decodedText, { shouldValidate: true });
-            toast({ title: "Barcode Scanned", description: `Scanned: ${decodedText}` });
-        };
-
-        const onScanFailure = (error: string) => {};
-
-        scannerRef.current = new Html5QrcodeScanner("reader", config, false);
-        scannerRef.current.render(onScanSuccess, onScanFailure);
-    } else {
-        if (scannerRef.current) {
-            scannerRef.current.clear().catch(error => {});
-        }
-    }
-
-    return () => {
-        if (scannerRef.current) {
-            scannerRef.current.clear().catch(error => {});
-        }
-    };
-}, [isScannerVisible, form, toast]);
-
   const onSubmit = async (values: ItemFormValues) => {
     setIsLoading(true);
     try {
-      if (!authUser) {
-        toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to perform this action.' });
-        setIsLoading(false);
-        return;
-      }
-       if (!values.moduleId) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Item must be associated with a module bag.' });
-        setIsLoading(false);
-        return;
-      }
+      if (!authUser) throw new Error('Authentication Error');
+      if (!values.moduleId) throw new Error('Item must be associated with a module bag.');
 
-      const itemData: any = {
-        ...values,
-        expirationDate: values.expirationDate ? Timestamp.fromDate(values.expirationDate) : null,
+      const itemData: Omit<MedicalItem, 'id' | 'createdAt' | 'createdBy' > = {
+        name: values.name,
+        barcode: values.barcode,
+        targetQuantity: values.targetQuantity,
+        moduleId: values.moduleId,
+        batches: values.batches.map(b => ({
+          quantity: b.quantity,
+          expirationDate: b.expirationDate ? Timestamp.fromDate(b.expirationDate as Date) : null,
+        })),
+        updatedAt: serverTimestamp() as Timestamp,
+        updatedBy: { uid: authUser.uid, name: authUser.fullName || authUser.email },
       };
       
       if (item) {
-        itemData.updatedAt = serverTimestamp();
-        itemData.updatedBy = { uid: authUser.uid, name: authUser.fullName || authUser.email };
         await setDoc(doc(db, 'items', item.id), itemData, { merge: true });
         toast({ title: 'Item Updated', description: `${values.name} has been updated.` });
       } else {
-        itemData.createdAt = serverTimestamp();
-        itemData.createdBy = { uid: authUser.uid, name: authUser.fullName || authUser.email };
-        await addDoc(collection(db, 'items'), itemData);
+        const fullItemData = {
+            ...itemData,
+            createdAt: serverTimestamp() as Timestamp,
+            createdBy: { uid: authUser.uid, name: authUser.fullName || authUser.email },
+        }
+        await addDoc(collection(db, 'items'), fullItemData);
         toast({ title: 'Item Added', description: `${values.name} has been added to inventory.` });
       }
       onSuccess();
       setIsOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving item: ", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not save the item. Please try again.' });
+      toast({ variant: 'destructive', title: 'Error', description: error.message || 'Could not save the item. Please try again.' });
     } finally {
       setIsLoading(false);
     }
@@ -255,7 +214,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{item ? t('inventory.itemDialog.editTitle') : t('inventory.itemDialog.addTitle')}</DialogTitle>
           <DialogDescription>
@@ -264,44 +223,31 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('inventory.itemDialog.nameLabel')}</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder={t('inventory.itemDialog.namePlaceholder')} 
-                      {...field}
-                      list="item-names"
-                      autoComplete="off"
-                    />
-                  </FormControl>
-                  <datalist id="item-names">
-                    {uniqueItemsByName.map((i) => (
-                        <option key={i.id} value={i.name} />
-                    ))}
-                  </datalist>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="quantity"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('inventory.itemDialog.quantityLabel')}</FormLabel>
+                    <FormLabel>{t('inventory.itemDialog.nameLabel')}</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input 
+                        placeholder={t('inventory.itemDialog.namePlaceholder')} 
+                        {...field}
+                        list="item-names"
+                        autoComplete="off"
+                      />
                     </FormControl>
+                    <datalist id="item-names">
+                      {uniqueItemsByName.map((i) => (
+                          <option key={i.id} value={i.name} />
+                      ))}
+                    </datalist>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
+               <FormField
                 control={form.control}
                 name="targetQuantity"
                 render={({ field }) => (
@@ -315,23 +261,6 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
                 )}
               />
             </div>
-             <FormField
-              control={form.control}
-              name="expirationDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('inventory.itemDialog.expirationDateLabel')}</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="DD.MM.YY"
-                      {...field}
-                      value={field.value || ''}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField
               control={form.control}
               name="barcode"
@@ -346,7 +275,7 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
                       type="button"
                       variant="outline"
                       size="icon"
-                      onClick={() => setIsScannerVisible(v => !v)}
+                      onClick={() => {}}
                     >
                       <Camera className="h-4 w-4" />
                       <span className="sr-only">Scan Barcode</span>
@@ -356,21 +285,71 @@ export function ItemDialog({ isOpen, setIsOpen, item, moduleId, onSuccess }: Ite
                 </FormItem>
               )}
             />
-            {isScannerVisible && (
-              <div className="p-4 my-4 border rounded-md bg-card">
-                <div id="reader" className="w-full"></div>
-                 <Button
+
+            <Separator />
+
+            <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
+                <h3 className="text-lg font-medium">{t('inventory.itemDialog.batchesHeader')}</h3>
+                {fields.map((field, index) => (
+                    <div key={field.id} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-start p-3 border rounded-lg">
+                        <FormField
+                            control={form.control}
+                            name={`batches.${index}.quantity`}
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>{t('inventory.itemDialog.quantityLabel')}</FormLabel>
+                                <FormControl>
+                                    <Input type="number" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name={`batches.${index}.expirationDate`}
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>{t('inventory.itemDialog.expirationDateLabel')}</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="DD.MM.YY" {...field} value={field.value || ''} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="mt-8"
+                            onClick={() => remove(index)}
+                            disabled={fields.length <= 1}
+                            >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Remove batch</span>
+                        </Button>
+                    </div>
+                ))}
+            </div>
+
+            <div className="flex justify-between items-center">
+                <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="w-full mt-2"
-                    onClick={() => setIsScannerVisible(false)}
+                    onClick={() => append({ quantity: 1, expirationDate: '' })}
                 >
-                    Cancel Scan
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    {t('inventory.itemDialog.addBatch')}
                 </Button>
-              </div>
-            )}
-            <DialogFooter>
+                <div className="text-right">
+                    <span className="text-sm font-medium text-muted-foreground">{t('inventory.itemDialog.totalQuantity')}: </span>
+                    <span className="text-lg font-bold">{totalQuantity}</span>
+                </div>
+            </div>
+
+            <DialogFooter className="pt-4">
               <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>{t('inventory.itemDialog.cancel')}</Button>
               <Button type="submit" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

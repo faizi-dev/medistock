@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -32,6 +33,17 @@ type DialogState = {
 type DeletionTarget = {
   type: 'case' | 'module' | 'item';
   data: any;
+};
+
+const processItems = (items: MedicalItem[]): MedicalItem[] => {
+  return items.map(item => {
+    const totalQuantity = item.batches.reduce((sum, batch) => sum + batch.quantity, 0);
+    const earliestExpiration = item.batches
+      .filter(b => b.expirationDate)
+      .map(b => b.expirationDate!)
+      .sort((a, b) => a.toMillis() - b.toMillis())[0] || null;
+    return { ...item, quantity: totalQuantity, earliestExpiration };
+  });
 };
 
 export default function VehicleInventoryPage() {
@@ -83,7 +95,8 @@ export default function VehicleInventoryPage() {
           if (moduleBagIds.length > 0) {
             const itemsQuery = query(collection(db, 'items'), where('moduleId', 'in', moduleBagIds));
             onSnapshot(itemsQuery, (itemSnapshot) => {
-              setItems(itemSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MedicalItem)));
+              const rawItems = itemSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MedicalItem));
+              setItems(processItems(rawItems));
             });
           } else {
             setItems([]);

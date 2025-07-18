@@ -1,13 +1,21 @@
 import type { Timestamp } from 'firebase/firestore';
 
+export interface MedicalItemBatch {
+  quantity: number;
+  expirationDate: Timestamp | null;
+}
+
 export interface MedicalItem {
   id: string;
   name: string;
   barcode?: string;
-  quantity: number;
   targetQuantity: number;
-  expirationDate: Timestamp | null;
   moduleId: string;
+  batches: MedicalItemBatch[];
+  // Calculated fields, not stored in DB but useful on client
+  quantity?: number; 
+  earliestExpiration?: Timestamp | null;
+
   createdAt: Timestamp;
   createdBy: { uid: string; name: string; };
   updatedAt?: Timestamp;
@@ -30,7 +38,7 @@ export interface Case {
     createdAt: Timestamp;
     createdBy: { uid: string; name: string; };
     updatedAt?: Timestamp;
-    updatedBy?: { uid: string; name: string; };
+    updatedBy?: { uid:string; name: string; };
 }
 
 export interface ModuleBag {

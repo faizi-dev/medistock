@@ -51,6 +51,17 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { generateReportHtml } from '@/lib/report-generator';
 
+const processItems = (items: MedicalItem[]): MedicalItem[] => {
+  return items.map(item => {
+    const totalQuantity = item.batches.reduce((sum, batch) => sum + batch.quantity, 0);
+    const earliestExpiration = item.batches
+      .filter(b => b.expirationDate)
+      .map(b => b.expirationDate!)
+      .sort((a, b) => a.toMillis() - b.toMillis())[0] || null;
+    return { ...item, quantity: totalQuantity, earliestExpiration };
+  });
+};
+
 export function InventoryDataTable() {
   const [items, setItems] = useState<MedicalItem[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -71,7 +82,8 @@ export function InventoryDataTable() {
   useEffect(() => {
     const unsubscribes = [
       onSnapshot(query(collection(db, 'items')), snapshot => {
-        setItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MedicalItem)));
+        const rawItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MedicalItem));
+        setItems(processItems(rawItems));
         setLoading(false);
       }),
       onSnapshot(query(collection(db, 'vehicles')), snapshot => {

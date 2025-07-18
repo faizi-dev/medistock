@@ -155,9 +155,9 @@ export const generateReportHtml = (
 
   let filteredItems = items;
   if (reportType === 'restock') {
-    filteredItems = items.filter(item => item.quantity < item.targetQuantity);
+    filteredItems = items.filter(item => (item.quantity || 0) < item.targetQuantity);
   } else if (reportType === 'expiring') {
-    filteredItems = items.filter(item => item.expirationDate && item.expirationDate.toDate() < fortyTwoDaysFromNow);
+    filteredItems = items.filter(item => item.batches.some(b => b.expirationDate && b.expirationDate.toDate() < fortyTwoDaysFromNow));
   }
 
   // Group items by vehicle -> case -> module
@@ -190,17 +190,19 @@ export const generateReportHtml = (
 
   // Build Summary
   const totalRestockNeeded = items.reduce((acc, item) => {
-    const needed = item.targetQuantity - item.quantity;
+    const needed = item.targetQuantity - (item.quantity || 0);
     return acc + (needed > 0 ? needed : 0);
   }, 0);
+
+  const expiringItemsCount = items.filter(item => item.batches.some(b => b.expirationDate && b.expirationDate.toDate() < fortyTwoDaysFromNow)).length;
 
   let summaryHtml = `
     <div class="summary">
         <h2>${t('report.summary')}</h2>
         <p><strong>${t('report.totalItems')}:</strong> ${items.length}</p>
-        <p><strong>${t('report.understockedItems')}:</strong> ${items.filter(i => i.quantity < i.targetQuantity).length}</p>
+        <p><strong>${t('report.understockedItems')}:</strong> ${items.filter(i => (i.quantity || 0) < i.targetQuantity).length}</p>
         <p><strong>${t('report.totalRestock')}:</strong> ${totalRestockNeeded}</p>
-        <p><strong>${t('report.expiringItems')}:</strong> ${items.filter(i => i.expirationDate && i.expirationDate.toDate() < fortyTwoDaysFromNow).length}</p>
+        <p><strong>${t('report.expiringItems')}:</strong> ${expiringItemsCount}</p>
     </div>`;
   
   // Build main content
@@ -219,33 +221,33 @@ export const generateReportHtml = (
             for (const [moduleId, itemsList] of modulesMap.entries()) {
             const moduleBag = moduleBagMap.get(moduleId)!;
             mainContent += `<h4>${t('report.module')}: ${moduleBag.name}</h4>`;
-            mainContent += `
-                <table>
-                <thead>
-                    <tr>
-                    <th>${t('report.itemName')}</th>
-                    <th>${t('report.quantity')}</th>
-                    <th>${t('report.target')}</th>
-                    <th>${t('report.restockNeeded')}</th>
-                    <th>${t('report.expires')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-            `;
+            
             for (const item of itemsList) {
-                const restockNeeded = item.targetQuantity - item.quantity;
-                const restockClass = restockNeeded > 0 ? 'understocked' : '';
-                mainContent += `
-                <tr>
-                    <td>${item.name}</td>
-                    <td>${item.quantity}</td>
-                    <td>${item.targetQuantity}</td>
-                    <td class="${restockClass}">${restockNeeded > 0 ? restockNeeded : '0'}</td>
-                    <td>${item.expirationDate ? format(item.expirationDate.toDate(), 'yyyy-MM-dd') : 'N/A'}</td>
-                </tr>
-                `;
+              const totalQuantity = item.quantity || 0;
+              const restockNeeded = item.targetQuantity - totalQuantity;
+              const restockClass = restockNeeded > 0 ? 'understocked' : '';
+              mainContent += `
+                  <h5>${item.name}</h5>
+                  <p>Target: ${item.targetQuantity} | Total: ${totalQuantity} | <span class="${restockClass}">Needed: ${restockNeeded > 0 ? restockNeeded : 0}</span></p>
+                  <table>
+                  <thead>
+                      <tr>
+                      <th>${t('report.quantity')}</th>
+                      <th>${t('report.expires')}</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+              `;
+              for (const batch of item.batches) {
+                  mainContent += `
+                  <tr>
+                      <td>${batch.quantity}</td>
+                      <td>${batch.expirationDate ? format(batch.expirationDate.toDate(), 'yyyy-MM-dd') : 'N/A'}</td>
+                  </tr>
+                  `;
+              }
+              mainContent += `</tbody></table>`;
             }
-            mainContent += `</tbody></table>`;
             }
         }
         if (i < vehicleEntries.length - 1) {

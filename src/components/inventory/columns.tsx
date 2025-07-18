@@ -25,22 +25,25 @@ type Status = {
 
 const getStatuses = (item: MedicalItem, t: (key: TranslationKey) => string): Status[] => {
   const statuses: Status[] = [];
+  const now = new Date();
 
-  if (item.expirationDate && item.expirationDate.toDate() < new Date()) {
+  const isExpired = item.batches.some(b => b.expirationDate && b.expirationDate.toDate() < now);
+  if (isExpired) {
     return [{ key: 'expired', text: t('inventory.status.expired'), variant: 'destructive' }];
   }
   
-  if (item.expirationDate) {
+  if (item.earliestExpiration) {
     const fortyTwoDaysFromNow = new Date();
     fortyTwoDaysFromNow.setDate(fortyTwoDaysFromNow.getDate() + 42);
-    if (item.expirationDate.toDate() < fortyTwoDaysFromNow) {
+    if (item.earliestExpiration.toDate() < fortyTwoDaysFromNow) {
       statuses.push({ key: 'expiringSoon', text: t('inventory.status.expiringSoon'), variant: 'outline' });
     }
   }
 
-  if (item.quantity < item.targetQuantity) {
+  const totalQuantity = item.quantity || 0;
+  if (totalQuantity < item.targetQuantity) {
     statuses.push({ key: 'understocked', text: t('inventory.status.understocked'), variant: 'destructive' });
-  } else if (item.quantity > item.targetQuantity) {
+  } else if (totalQuantity > item.targetQuantity) {
     statuses.push({ key: 'overstocked', text: t('inventory.status.overstocked'), variant: 'outline' });
   } else {
     statuses.push({ key: 'fullyStocked', text: t('inventory.status.fullyStocked'), variant: 'secondary' });
@@ -128,22 +131,28 @@ export const getColumns = (
     },
     cell: ({ row }) => {
       const item = row.original;
-      const discrepancy = item.quantity - item.targetQuantity;
+      const totalQuantity = item.quantity || 0;
+      const discrepancy = totalQuantity - item.targetQuantity;
       const discrepancyText = discrepancy > 0 ? `+${discrepancy}` : `${discrepancy}`;
       const discrepancyColor = discrepancy < 0 ? 'text-destructive' : discrepancy > 0 ? 'text-blue-600' : 'text-muted-foreground';
 
       return (
         <div className="text-center">
-            <p className="font-medium">{item.quantity}</p>
+            <p className="font-medium">{totalQuantity}</p>
             <p className={`text-xs ${discrepancyColor}`}>
               Target: {item.targetQuantity} ({discrepancyText})
             </p>
         </div>
       );
     },
+    sortingFn: (rowA, rowB, columnId) => {
+      const numA = rowA.original.quantity || 0;
+      const numB = rowB.original.quantity || 0;
+      return numA - numB;
+    }
   },
   {
-    accessorKey: 'expirationDate',
+    accessorKey: 'earliestExpiration',
     header: ({ column }) => {
       return (
         <Button
@@ -156,9 +165,29 @@ export const getColumns = (
       );
     },
     cell: ({ row }) => {
-      const date = row.original.expirationDate?.toDate();
-      return date ? format(date, 'MMM d, yyyy') : 'N/A';
+      const date = row.original.earliestExpiration?.toDate();
+      if (!date) return 'N/A';
+      
+      const isNextToExpire = row.original.batches.length > 1;
+      return (
+        <div>
+          <span>{format(date, 'MMM d, yyyy')}</span>
+          {isNextToExpire && (
+            <div className="text-xs text-muted-foreground">
+              {t('inventory.columns.nextToExpire')}
+            </div>
+          )}
+        </div>
+      );
     },
+    sortingFn: (rowA, rowB, columnId) => {
+        const dateA = rowA.original.earliestExpiration?.toDate()?.getTime() || -1;
+        const dateB = rowB.original.earliestExpiration?.toDate()?.getTime() || -1;
+        if (dateA === -1 && dateB === -1) return 0;
+        if (dateA === -1) return 1;
+        if (dateB === -1) return -1;
+        return dateA - dateB;
+    }
   },
   {
     id: 'status',

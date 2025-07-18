@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,6 +12,17 @@ import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, CartesianGri
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from '@/context/language-context';
 
+const processItems = (items: MedicalItem[]): MedicalItem[] => {
+  return items.map(item => {
+    const totalQuantity = item.batches.reduce((sum, batch) => sum + batch.quantity, 0);
+    const earliestExpiration = item.batches
+      .filter(b => b.expirationDate)
+      .map(b => b.expirationDate!)
+      .sort((a, b) => a.toMillis() - b.toMillis())[0] || null;
+    return { ...item, quantity: totalQuantity, earliestExpiration };
+  });
+};
+
 export default function DashboardPage() {
   const [items, setItems] = useState<MedicalItem[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -22,7 +34,8 @@ export default function DashboardPage() {
   useEffect(() => {
     const itemsQuery = query(collection(db, 'items'));
     const unsubscribeItems = onSnapshot(itemsQuery, (snapshot) => {
-      setItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MedicalItem)));
+      const rawItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MedicalItem));
+      setItems(processItems(rawItems));
       setLoading(false);
     });
 
@@ -49,15 +62,16 @@ export default function DashboardPage() {
     };
   }, []);
 
-  const understockedItems = items.filter(item => item.quantity < item.targetQuantity).length;
+  const understockedItems = items.filter(item => (item.quantity || 0) < item.targetQuantity).length;
+  
   const expiringSoonItems = items.filter(item => {
-    if (!item.expirationDate) return false;
+    if (!item.earliestExpiration) return false;
     const fortyTwoDaysFromNow = new Date();
     fortyTwoDaysFromNow.setDate(fortyTwoDaysFromNow.getDate() + 42);
-    return item.expirationDate.toDate() < fortyTwoDaysFromNow;
+    return item.earliestExpiration.toDate() < fortyTwoDaysFromNow;
   }).length;
 
-  const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
+  const totalItems = items.reduce((acc, item) => acc + (item.quantity || 0), 0);
 
   const inventoryByVehicle = vehicles.map(vehicle => {
     const casesInVehicle = cases.filter(c => c.vehicleId === vehicle.id);
@@ -67,7 +81,7 @@ export default function DashboardPage() {
     const moduleIds = modulesInVehicle.map(m => m.id);
 
     const itemsInVehicle = items.filter(item => moduleIds.includes(item.moduleId));
-    const totalQuantity = itemsInVehicle.reduce((acc, item) => acc + item.quantity, 0);
+    const totalQuantity = itemsInVehicle.reduce((acc, item) => acc + (item.quantity || 0), 0);
 
     return {
       name: vehicle.name,
