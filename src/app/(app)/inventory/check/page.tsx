@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
-import { collection, onSnapshot, query, writeBatch, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, writeBatch, addDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { PageHeader } from '@/components/shared/page-header';
@@ -262,4 +262,3 @@ export default function InventoryCheckPage() {
     </>
   );
 }
-
